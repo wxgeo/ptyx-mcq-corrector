@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="52.63073mm"
+   height="52.630722mm"
+   viewBox="0 0 52.63073 52.630722"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <g
+     id="layer1">
+    <ellipse
+       style="fill:#BEBEBE"
+       id="ellipse3838"
+       cx="26.315361"
+       cy="6.7797203"
+       rx="2.2266235"
+       ry="6.7797203" />
+    <ellipse
+       style="fill:#B4B4B4"
+       id="ellipse3840"
+       cx="32.229607"
+       cy="-0.92787093"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(15)" />
+    <ellipse
+       style="fill:#AAAAAA"
+       id="ellipse3842"
+       cx="35.947445"
+       cy="-9.9035492"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(30)" />
+    <ellipse
+       style="fill:#A0A0A0"
+       id="ellipse3846"
+       cx="37.21553"
+       cy="-19.535637"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(45)" />
+    <ellipse
+       style="fill:#969696"
+       id="ellipse3844"
+       cx="35.947453"
+       cy="-29.16774"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(60)" />
+    <ellipse
+       style="fill:#8C8C8C"
+       id="ellipse3848"
+       cx="32.229599"
+       cy="-38.143406"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(75)" />
+    <ellipse
+       style="fill:#828282"
+       id="ellipse3850"
+       cx="26.315361"
+       cy="-45.851009"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(90)" />
+    <ellipse
+       style="fill:#787878"
+       id="ellipse3852"
+       cx="18.607771"
+       cy="-51.765255"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(105)" />
+    <ellipse
+       style="fill:#6E6E6E"
+       id="ellipse3854"
+       cx="9.6320915"
+       cy="-55.483086"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(120)" />
+    <ellipse
+       style="fill:#646464"
+       id="ellipse3856"
+       cx="-1.7048466e-06"
+       cy="-56.751194"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(135)" />
+    <ellipse
+       style="fill:#5A5A5A"
+       id="ellipse3860"
+       cx="-9.6320992"
+       cy="-55.483093"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(150)" />
+    <ellipse
+       style="fill:#505050"
+       id="ellipse3858"
+       cx="-18.607784"
+       cy="-51.765244"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(165)" />
+    <ellipse
+       style="fill:#464646"
+       id="ellipse3862"
+       cx="-26.315361"
+       cy="-45.851002"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(180)" />
+    <ellipse
+       style="fill:#3C3C3C"
+       id="ellipse3866"
+       cx="-32.229599"
+       cy="-38.14341"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-165)" />
+    <ellipse
+       style="fill:#323232"
+       id="ellipse3864"
+       cx="-35.947437"
+       cy="-29.167732"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-150)" />
+    <ellipse
+       style="fill:#282828"
+       id="ellipse3868"
+       cx="-37.215542"
+       cy="-19.535633"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-135)" />
+    <ellipse
+       style="fill:#1E1E1E"
+       id="ellipse3870"
+       cx="-35.947449"
+       cy="-9.9035511"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-120)" />
+    <ellipse
+       style="fill:#141414"
+       id="ellipse3872"
+       cx="-32.229599"
+       cy="-0.92786986"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-105)" />
+    <ellipse
+       style="fill:#0A0A0A"
+       id="ellipse3874"
+       cx="-26.315359"
+       cy="6.7797208"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-90)" />
+    <ellipse
+       style="fill:#000000"
+       id="ellipse3876"
+       cx="-18.607767"
+       cy="12.693967"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-75)" />
+    <ellipse
+       style="fill:#E6E6E6"
+       id="ellipse3878"
+       cx="-9.6320934"
+       cy="16.411812"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-60)" />
+    <ellipse
+       style="fill:#DCDCDC"
+       id="ellipse3880"
+       cx="1.7430175e-06"
+       cy="17.679905"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-45)" />
+    <ellipse
+       style="fill:#D2D2D2"
+       id="ellipse3882"
+       cx="9.6320925"
+       cy="16.411802"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-30)" />
+    <ellipse
+       style="fill:#C8C8C8"
+       id="ellipse3884"
+       cx="18.607775"
+       cy="12.693969"
+       rx="2.2266235"
+       ry="6.7797203"
+       transform="rotate(-15)" />
+  </g>
+</svg>

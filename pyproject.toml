@@ -1,0 +1,67 @@
+[tool.poetry]
+name = "ptyx-mcq-corrector"
+version = "0.1.0"
+description = ""
+authors = ["Nicolas Pourcelot <nicolas.pourcelot@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ptyx_mcq_corrector"}]
+include = ["ressources"]
+license = "GPL-3.0-or-later"
+
+[tool.poetry.scripts]
+mcq-corrector = "ptyx_mcq_corrector.app:main"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ptyx-mcq = "^27.1"
+platformdirs = "^4"
+# tomli-w = "^1.0.0"
+argcomplete = "^3.1.6"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.6.1"
+ptyx-mcq = {path = "../ptyx-mcq", develop = true}
+ptyx = {path = "../ptyx", develop = true}
+#ptyx = {path = "../ptyx", develop = true}
+black = "^23.10"
+ruff = "^0.3"
+tox = "^4.11"
+pytest = "^7.4"
+
+
+[tool.black]
+line-length = 110
+extend-exclude = "ptyx_mcq_corrector/generated_ui/.*"
+
+[tool.ruff]
+line-length = 110
+extend-exclude = ["ptyx_mcq_corrector/generated_ui/"]
+
+[tool.mypy]
+implicit_optional = true
+warn_redundant_casts = true
+# enable_error_code = true
+warn_unused_ignores = true
+# Warning: exclude strings are handled as regex by mypy!
+exclude = ["ptyx_mcq_corrector/generated_ui/"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+skipsdist = true
+isolated_build = True
+envlist = py311
+
+[testenv]
+passenv = HOME,DISPLAY,XAUTHORITY
+allowlist_externals = poetry
+commands =
+    poetry install -v
+    poetry run ruff check ptyx_mcq_corrector tests
+    poetry run mypy ptyx_mcq_correct tests
+    poetry run pytest tests
+"""

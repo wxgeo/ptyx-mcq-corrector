@@ -1,0 +1,19 @@
+[Desktop Entry]
+# https://specifications.freedesktop.org/desktop-entry-spec/latest
+Version=1.5
+Type=Application
+Name=MCQ Editor
+Icon=mcq-editor.svg
+# %f indicates that the program can handle only one filename argument.
+Exec="mcq-editor" %f
+# TODO: Once multiple files opening will be implemented, replace %f with %F:
+# Exec="mcq-editor" %F
+Comment=Small Editor for pTyX MCQ-files.
+Categories=Development;IDE;Education;
+Terminal=false
+# This must be either the title of the main window (WM_NAME),
+# or the value of sys.argv[0] (WM_CLASS).
+# Note: To find out the WM_CLASS of a window, type in a terminal:
+# `xprop WM_CLASS`
+# and then click at the window.
+StartupWMClass=mcq-editor
