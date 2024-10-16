@@ -50,7 +50,7 @@ def main(args: list | None = None) -> None:
         # Used to handle Ctrl+C
         # https://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co
         SignalWakeupHandler(app)
-        main_window = McqEditorMainWindow(parsed_args)
+        main_window = McqCorrectorMainWindow(parsed_args)
         # Don't close pyQt application on failure.
         sys.excepthook = partial(my_excepthook, window=main_window)
         # Used to handle Ctrl+C
