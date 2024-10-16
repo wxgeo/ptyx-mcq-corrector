@@ -150,7 +150,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
     # noinspection PyDefaultArgument
     def update_recent_files_menu(self) -> None:
-        recent_files = tuple(self.settings.recent_files)
+        recent_files = tuple(self.settings.recent_dirs)
         if not recent_files:
             self.menu_Recent_Files.menuAction().setVisible(False)
         else:

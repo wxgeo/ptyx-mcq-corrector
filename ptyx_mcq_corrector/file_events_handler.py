@@ -285,7 +285,7 @@ class FileEventsHandler(QObject):
         path_str, _ = QFileDialog.getSaveFileName(
             self.main_window,
             "Save as...",
-            str(self.settings.current_directory),
+            str(self.settings.current_dir),
             ";;".join(FILES_FILTER),
             FILES_FILTER[0],
         )
@@ -293,7 +293,7 @@ class FileEventsHandler(QObject):
             path: Path | None = None
         else:
             path = Path(path_str)
-            self.settings.current_directory = path.parent
+            self.settings.current_dir = path.parent
         return path
 
     def open_file_dialog(self) -> list[Path]:
@@ -301,12 +301,12 @@ class FileEventsHandler(QObject):
         filenames, _ = QFileDialog.getOpenFileNames(
             self.main_window,
             "Open MCQ or Ptyx files",
-            str(self.settings.current_directory),
+            str(self.settings.current_dir),
             ";;".join(FILES_FILTER),
             FILES_FILTER[0],
         )
         if filenames:
-            self.settings.current_directory = Path(filenames[0]).parent
+            self.settings.current_dir = Path(filenames[0]).parent
         return [Path(filename) for filename in filenames]
 
     def should_tab_be_saved(self) -> QMessageBox.StandardButton:

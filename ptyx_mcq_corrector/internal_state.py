@@ -2,7 +2,7 @@ import tomllib
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Any
 
 import platformdirs
 from tomli_w import dumps
@@ -39,121 +39,87 @@ class Settings:
     """
 
     _recent_dirs: list[Path] = field(default_factory=list)
-    current_directory: Path | None = None
+    _current_dir: Path | None = None
     current_action: CurrentAction|None = None
     current_picture: Path|None = None
     checkable_areas: list[tuple] = field(default_factory=list)
 
 
     @property
-    def default_directory(self) -> Path:
+    def default_dir(self) -> Path:
         """Default directory proposed when opening a file.
 
         This is the folder containing the current file, if saved on disk.
         Else, it is last used directory.
         """
-        if self.current_doc_path is None:
-            return self._current_directory if self._current_directory is not None else Path.cwd()
-        return self.current_doc_path.parent
-
-    @current_directory.setter
-    def current_directory(self, path: Path) -> None:
-        self._current_directory = path
-
-
+        return self._current_dir if self._current_dir is not None else Path.cwd()
 
     @property
-    def current_doc_path(self) -> Path | None:
-        return None if self.current_doc is None else self.current_doc.path
+    def current_dir(self) -> Path | None:
+        return self._current_dir
 
-    # @property
-    # def current_doc_directory(self) -> Path | None:
-    #     return None if self.current_doc_path is None else self.current_doc_path.parent
+    @staticmethod
+    def is_ptyx_directory(path: Path) -> bool:
+        path = path.resolve()
+        return path.is_dir() and sum(1 for _ in path.parent.glob("*.ptyx.mcq.config.json")) == 1
 
+    def open_dir(self, directory: Path)->bool:
+        """Open directory.
 
+        Before opening, verification occurs:
+        - `directory` must effectively be a directory.
+        - it must contain a unique mcq configuration file (i.e. a `.ptyx.mcq.config.json` file.)
 
-
-
-
-    def open_dir(self, path: Path):
+        Return a boolean, indicating if the current directory was effectively changed."""
         # Attention, paths must be resolved to don't miss duplicates (symlinks...)!
         # Do nothing if it's the current directory.
-        if path.resolve() != self.current_doc_path:
+        if self.is_ptyx_directory(directory) and directory.resolve() != self._current_dir.resolve():
             self.close_dir()
-            self.current_
+            self._current_dir = directory
+            return True
+        return False
 
-    def close_doc(self, side: Side = None, index: int = None) -> Path | None:
-        if side is None:
-            side = self._current_side
-        path = self.docs(side).close_doc(index)
-        if path is not None and path.is_file():
-            self._remember_file(path)
-        return path
+    def close_dir(self) -> None:
+        if self._current_dir is not None:
+            self._remember_dir(self._current_dir)
 
-    def _remember_file(self, new_path: Path) -> None:
+    def _remember_dir(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
         self._recent_dirs = [new_path] + [
-            path for path in self._recent_dirs if path.resolve() != new_path.resolve() and path.is_file()
+            path for path in self._recent_dirs if path.resolve() != new_path.resolve() and path.is_dir()
         ]
         if len(self._recent_dirs) > MAX_RECENT_FILES:
             self._recent_dirs.pop()
 
 
-
     @property
-    def recent_files(self) -> Iterator[Path]:
+    def recent_dirs(self) -> Iterator[Path]:
         """Return an iterator over the recent files, starting with the more recent one.
 
-        The recent files list is updated first, removing invalid entries (deleted files).
+        The recent files list is updated first, removing invalid entries (deleted directories).
         """
         # Update recent files list.
-        opened_files = self.opened_files
         self._recent_dirs = [
-            path for path in self._recent_dirs if path.is_file() and path not in opened_files
+            path for path in self._recent_dirs if path.is_dir() and path.resolve() != self.current_dir.resolve()
         ]
-
         return iter(self._recent_dirs)
 
-    # @property
-    # def current_doc_is_saved(self) -> bool:
-    #     if self.current_doc is None:
-    #         return True
-    #     return self.current_doc.is_saved
 
-    # @property
-    # def current_doc_title(self) -> str:
-    #     if self.current_doc is None:
-    #         return ""
-    #     return self.current_doc.title
 
     def _as_dict(self) -> dict[str, Any]:
         """Used for saving settings when closing application."""
         return {
-            "current_side": self._current_side.name,
-            "recent_files": [str(path) for path in self.recent_files],
-            "docs": {"left": self._left_docs.as_dict(), "right": self._right_docs.as_dict()},
-            "current_directory": str(self.current_directory),
+            "recent_dirs": [str(path) for path in self.recent_dirs],
+            "current_dir": str(self.current_dir),
         }
 
     @classmethod
     def _from_dict(cls, d: dict[str, Any]) -> "Settings":
-        recent_files = [Path(s) for s in d.get("recent_files", [])]
-        current_side = getattr(Side, d.get("current_side", "LEFT"), Side.LEFT)
-        current_directory = Path(d.get("current_directory", Path.cwd()))
-        docs = {
-            side: DocumentsCollection(
-                _side=side,
-                _documents=[Document(Path(path)) for path in data.get("files", []) if Path(path).is_file()],
-                _current_index=data.get("current_index", 0),
-            )
-            for (side, data) in d.get("docs", {}).items()
-        }
+        recent_files = [Path(s) for s in d.get("recent_dirs", [])]
+        current_directory = Path(d.get("current_dir", Path.cwd()))
         return Settings(
             _recent_dirs=recent_files,
-            _current_side=current_side,
-            _left_docs=docs.get("left", DocumentsCollection(Side.LEFT)),
-            _right_docs=docs.get("right", DocumentsCollection(Side.RIGHT)),
-            _current_directory=current_directory,
+            _current_dir=current_directory,
         )
 
     def save_settings(self) -> None:
