@@ -103,10 +103,6 @@ class FileEventsHandler(QObject):
     def settings(self):
         return self.main_window.settings
 
-
-
-
-
     # ------------------------------------------
     #      UI synchronization with settings
     # ==========================================
@@ -181,8 +177,6 @@ class FileEventsHandler(QObject):
             self._update_ui()
             self.main_window.compilation_tabs.update_tabs()
 
-
-
     # -------------------
     #      Actions
     # ===================
@@ -245,8 +239,6 @@ class FileEventsHandler(QObject):
                 # No new file will be opened, however the selected doc may have changed.
                 # So, we must return `True` in that case too to update UI.
         return True
-
-
 
     @update_ui
     def close_doc(self, side: Side = None, index: int = None) -> bool:
@@ -357,6 +349,3 @@ class FileEventsHandler(QObject):
         # TODO: implement status message.
         self.main_window.statusbar.setStyleSheet("")
         self.main_window.status_label.setText("")
-
-
-

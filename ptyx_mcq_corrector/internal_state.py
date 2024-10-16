@@ -29,6 +29,7 @@ class CurrentAction(Enum):
 #     current_picture: Path|None = None
 #     checkable_areas: list[tuple] = field(default_factory=list)
 
+
 @dataclass(kw_only=True)
 class Settings:
     """The application current state.
@@ -40,10 +41,9 @@ class Settings:
 
     _recent_dirs: list[Path] = field(default_factory=list)
     _current_dir: Path | None = None
-    current_action: CurrentAction|None = None
-    current_picture: Path|None = None
+    current_action: CurrentAction | None = None
+    current_picture: Path | None = None
     checkable_areas: list[tuple] = field(default_factory=list)
-
 
     @property
     def default_dir(self) -> Path:
@@ -63,7 +63,7 @@ class Settings:
         path = path.resolve()
         return path.is_dir() and sum(1 for _ in path.parent.glob("*.ptyx.mcq.config.json")) == 1
 
-    def open_dir(self, directory: Path)->bool:
+    def open_dir(self, directory: Path) -> bool:
         """Open directory.
 
         Before opening, verification occurs:
@@ -91,7 +91,6 @@ class Settings:
         if len(self._recent_dirs) > MAX_RECENT_FILES:
             self._recent_dirs.pop()
 
-
     @property
     def recent_dirs(self) -> Iterator[Path]:
         """Return an iterator over the recent files, starting with the more recent one.
@@ -100,11 +99,11 @@ class Settings:
         """
         # Update recent files list.
         self._recent_dirs = [
-            path for path in self._recent_dirs if path.is_dir() and path.resolve() != self.current_dir.resolve()
+            path
+            for path in self._recent_dirs
+            if path.is_dir() and path.resolve() != self.current_dir.resolve()
         ]
         return iter(self._recent_dirs)
-
-
 
     def _as_dict(self) -> dict[str, Any]:
         """Used for saving settings when closing application."""

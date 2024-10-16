@@ -62,7 +62,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # self.publish_dock.setVisible(False)
         # self.setCorner(Qt.Corner.TopRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
 
-
         self.status_label = QLabel(self)
         self.statusbar.addWidget(self.status_label)
 
@@ -137,8 +136,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
 
-
-
     def request_to_close(self) -> bool:
         if self.file_events_handler.ask_for_saving_if_needed():
             self.settings.save_settings()
@@ -183,7 +180,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # else:
         #     # noinspection PyTypeChecker
         #     QMessageBox.critical(self, "Unable to install shortcut", completed_process.stdout)
-
 
     # def get_temp_path(self, suffix: Literal["tex", "pdf"], doc_path: Path = None) -> Path | None:
     #     """Get the path of a temporary file corresponding to the current document."""
