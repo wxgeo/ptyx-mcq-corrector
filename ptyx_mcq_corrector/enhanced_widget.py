@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 class EnhancedWidget(QWidget):
-    def _get_main_window(self) -> "McqEditorMainWindow":
+    def _get_main_window(self) -> "McqCorrectorMainWindow":
         from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
         widget: QWidget = self

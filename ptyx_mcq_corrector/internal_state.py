@@ -2,16 +2,14 @@ import tomllib
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Iterator, Any
+from typing import Iterator, Any, Self
 
-import platformdirs
 from tomli_w import dumps
 
-CONFIG_PATH = Path(platformdirs.user_config_path("mcq-editor") / "config.toml")
-MAX_RECENT_FILES = 12
+from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
-class CurrentAction(Enum):
+class Action(Enum):
     NONE = auto()
     IN_PROGRESS = auto()
     MISSING_NAME = auto()
@@ -22,28 +20,18 @@ class CurrentAction(Enum):
     RESULTS = auto()
 
 
-# @dataclass
-# class InternalState:
-#     config_file: Path|None = None
-#     current_action: CurrentAction|None = None
-#     current_picture: Path|None = None
-#     checkable_areas: list[tuple] = field(default_factory=list)
-
-
 @dataclass(kw_only=True)
-class Settings:
+class State:
     """The application current state.
 
-    This includes:
-    - tabs opened on
-    - recent files
+    This includes recent files.
     """
 
     _recent_dirs: list[Path] = field(default_factory=list)
     _current_dir: Path | None = None
-    current_action: CurrentAction | None = None
+    current_action: Action = Action.NONE
     current_picture: Path | None = None
-    checkable_areas: list[tuple] = field(default_factory=list)
+    clickable_areas: list[tuple] = field(default_factory=list)
 
     @property
     def default_dir(self) -> Path:
@@ -82,6 +70,11 @@ class Settings:
     def close_dir(self) -> None:
         if self._current_dir is not None:
             self._remember_dir(self._current_dir)
+        # Reset state, except for recent directories list.
+        self.current_action = Action.NONE
+        self.current_picture = None
+        self._current_dir = None
+        self.clickable_areas = []
 
     def _remember_dir(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
@@ -106,22 +99,22 @@ class Settings:
         return iter(self._recent_dirs)
 
     def _as_dict(self) -> dict[str, Any]:
-        """Used for saving settings when closing application."""
+        """Used for saving state when closing application."""
         return {
             "recent_dirs": [str(path) for path in self.recent_dirs],
             "current_dir": str(self.current_dir),
         }
 
     @classmethod
-    def _from_dict(cls, d: dict[str, Any]) -> "Settings":
+    def _from_dict(cls, d: dict[str, Any]) -> Self:
         recent_files = [Path(s) for s in d.get("recent_dirs", [])]
         current_directory = Path(d.get("current_dir", Path.cwd()))
-        return Settings(
+        return State(
             _recent_dirs=recent_files,
             _current_dir=current_directory,
         )
 
-    def save_settings(self) -> None:
+    def save(self) -> None:
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         settings_data = self._as_dict()
         toml = dumps(settings_data)
@@ -130,12 +123,12 @@ class Settings:
         print(f"Config saved in {CONFIG_PATH}")
 
     @classmethod
-    def load_settings(cls) -> "Settings":
+    def load(cls) -> Self:
         try:
             settings_dict = tomllib.loads(CONFIG_PATH.read_text("utf8"))
         except FileNotFoundError:
             settings_dict = {}
         except OSError as e:
             settings_dict = {}
-            print(f"Enable to load settings: {e!r}")
+            print(f"Enable to load state: {e!r}")
         return cls._from_dict(settings_dict)

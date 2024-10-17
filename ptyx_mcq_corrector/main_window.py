@@ -11,15 +11,8 @@ from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QLabel
 
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
+from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
-
-
-# from ptyx_mcq_editor.editor.editor_widget import EditorWidget
-# from ptyx_mcq_editor.events_handler import FileEventsHandler
-# from ptyx_mcq_editor.generated_ui.main_ui import Ui_MainWindow
-# from ptyx_mcq_editor.param import ICON_PATH
-# from ptyx_mcq_editor.settings import Settings, Side
-# from ptyx_mcq_editor.tools import install_desktop_shortcut
 
 
 def path_hash(path: Path | str) -> str:
@@ -37,18 +30,14 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
     def __init__(self, args: Namespace = None) -> None:
         super().__init__(parent=None)
-        # Always load settings, even when opening a new session,
+        # Always load state, even when opening a new session,
         # to get at least the recent files list.
-        # self.settings = Settings.load_settings()
+        self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
         self.setupUi(self)
 
-        # -----------------
-        # Internal settings
-        # -----------------
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
         # print("created temporary directory", self.tmp_dir)
-        # self.ui_updates_enabled = True
 
         # -----------------
         # Customize display
@@ -58,26 +47,13 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.setWindowIcon(QIcon(str(ICON_PATH)))
 
-        # self.search_dock.setVisible(False)
-        # self.publish_dock.setVisible(False)
-        # self.setCorner(Qt.Corner.TopRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
-
         self.status_label = QLabel(self)
         self.statusbar.addWidget(self.status_label)
-
-        # self.publish_toolbar = PublishToolBar(self)
-        # self.addToolBar(self.publish_toolbar)
-
-        # self.publish_toolbar.addWidget(PublishWidget(self))
-        # self.publish_toolbar.hide()
 
         # -------------------
         #   Connect signals
         # -------------------
         self.connect_menu_signals()
-        # self.search_dock.connect_signals()
-
-        # self.file_events_handler.finalize([Path(path) for path in args.paths] if args is not None else [])
 
     def connect_menu_signals(self) -> None:
         pass
@@ -137,17 +113,15 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
             event.ignore()
 
     def request_to_close(self) -> bool:
-        if self.file_events_handler.ask_for_saving_if_needed():
-            self.settings.save_settings()
-            # shutil.rmtree(self.tmp_dir)
-            # Pdf doc must be closed to avoid a segfault on exit.
-            # self.compilation_tabs.pdf_viewer.doc.close()
-            return True
-        return False
+        """Save state and return a boolean indicating if closing is accepted.
+
+        For now, requests are always accepted."""
+        self.state.save()
+        return True
 
     # noinspection PyDefaultArgument
     def update_recent_files_menu(self) -> None:
-        recent_files = tuple(self.settings.recent_dirs)
+        recent_files = tuple(self.state.recent_dirs)
         if not recent_files:
             self.menu_Recent_Files.menuAction().setVisible(False)
         else:
@@ -184,7 +158,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # def get_temp_path(self, suffix: Literal["tex", "pdf"], doc_path: Path = None) -> Path | None:
     #     """Get the path of a temporary file corresponding to the current document."""
     #     if doc_path is None:
-    #         doc = self.settings.current_doc
+    #         doc = self.state.current_doc
     #         if doc is None:
     #             return None
     #         doc_path = doc.path
