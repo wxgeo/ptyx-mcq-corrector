@@ -12,6 +12,7 @@ from PyQt6.QtCore import QRect, QPoint
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox
 from argcomplete import FilesCompleter
+from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 
 from ptyx_mcq_corrector.main_window import ICON_PATH, McqCorrectorMainWindow
 
@@ -34,13 +35,13 @@ def my_excepthook(
 def main(args: list | None = None) -> None:
     parser = ArgumentParser(description="Editor for pTyX and MCQ files.")
     parser.add_argument(
-        "paths",
-        nargs="*",
-        metavar="PATHS",
+        "path",
+        nargs="?",
+        metavar="PATH",
         type=Path,
-        help="One or more pTyX file to open (with '.ptyx' or '.ex' extension).",
+        help=f"One pTyX MCQ configuration file to open (with '{CONFIG_FILE_EXTENSION}' extension).",
     ).completer = FilesCompleter(  # type: ignore
-        ("ex", "ptyx")
+        (CONFIG_FILE_EXTENSION,)
     )
     argcomplete.autocomplete(parser, always_complete_options=False)
     parsed_args = parser.parse_args(args)

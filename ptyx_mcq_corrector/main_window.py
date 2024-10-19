@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QLabel
 
+from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
@@ -17,11 +18,6 @@ from ptyx_mcq_corrector.param import ICON_PATH
 
 def path_hash(path: Path | str) -> str:
     return urlsafe_b64encode(hash(str(path)).to_bytes(8, signed=True)).decode("ascii").rstrip("=")
-
-
-class FileEventsHandler:
-    def __init__(self, parent: "McqCorrectorMainWindow"):
-        self.parent = parent
 
 
 class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
@@ -54,16 +50,14 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         #   Connect signals
         # -------------------
         self.connect_menu_signals()
+        self.file_events_handler.finalize(args.path)
 
     def connect_menu_signals(self) -> None:
-        pass
         # Don't change handler variable value (because of name binding process in lambdas).
-        # handler: Final[FileEventsHandler] = self.file_events_handler
+        handler: Final[FileEventsHandler] = self.file_events_handler
 
         # *** 'File' menu ***
-        # self.action_Empty_file.triggered.connect(lambda: handler.new_doc(side=None, content=None))
-        # self.action_Mcq_ptyx_file.triggered.connect(lambda: handler.new_mcq_ptyx_doc(side=None))
-        # self.action_Open.triggered.connect(lambda: handler.open_doc(side=None))
+        self.action_Open_directory.triggered.connect(lambda: handler.open_file())
         # self.action_Save.triggered.connect(lambda: handler.save_doc(side=None, index=None))
         # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
         # self.action_Close.triggered.connect(lambda: handler.close_doc(side=None, index=None))
@@ -112,6 +106,14 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
 
+    def disable_navigation(self):
+        self.previous_button.hide()
+        self.next_button.hide()
+
+    def enable_navigation(self):
+        self.previous_button.show()
+        self.next_button.show()
+
     def request_to_close(self) -> bool:
         """Save state and return a boolean indicating if closing is accepted.
 
@@ -121,7 +123,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
     # noinspection PyDefaultArgument
     def update_recent_files_menu(self) -> None:
-        recent_files = tuple(self.state.recent_dirs)
+        recent_files = tuple(self.state.recent_files)
         if not recent_files:
             self.menu_Recent_Files.menuAction().setVisible(False)
         else:

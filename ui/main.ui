@@ -18,7 +18,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="previous_button">
         <property name="text">
          <string>Previous</string>
         </property>
@@ -38,7 +38,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="header_label">
         <property name="text">
          <string>No document</string>
         </property>
@@ -58,7 +58,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="next_button">
         <property name="text">
          <string>Next</string>
         </property>
@@ -82,7 +82,7 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="main_area">
           <property name="text">
            <string/>
           </property>
@@ -146,8 +146,14 @@
    </property>
   </action>
   <action name="actionScan_documents">
+   <property name="icon">
+    <iconset theme="media-playback-start"/>
+   </property>
    <property name="text">
     <string>&amp;Scan documents</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
    </property>
   </action>
   <action name="action_Reset_scan">

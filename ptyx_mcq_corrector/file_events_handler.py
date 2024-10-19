@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING, Final, Sequence, Callable
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog, QDialogButtonBox
 from ptyx_mcq.cli import get_template_path, update as update_include
+from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 
 import ptyx_mcq_corrector.param as param
-from ptyx_mcq_corrector.internal_state import State
+from ptyx_mcq_corrector.internal_state import State, Action
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -60,19 +61,16 @@ def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:
 
 
 class FileEventsHandler(QObject):
-    file_missing = pyqtSignal(str, name="file_missing")
 
     def __init__(self, main_window: "McqCorrectorMainWindow"):
         super().__init__(parent=main_window)
         self.main_window: Final = main_window
         self.freeze_update_ui: bool = False  # See update_ui() decorator docstring.
-        self.file_missing.connect(self.create_missing_file)
 
     @update_ui
-    def finalize(self, paths: Sequence[Path] = ()) -> bool:
-        if paths:
-            self.state.new_session()
-            self.open_dir(paths=paths)
+    def finalize(self, path: Path = None) -> bool:
+        if path is not None:
+            self.open_file(path)
         return True
 
     # ---------------------
@@ -87,47 +85,82 @@ class FileEventsHandler(QObject):
     #      UI synchronization with state
     # ==========================================
 
+    @property
+    def current_file_shortname(self) -> str:
+        return (
+            self.state.current_file.name[: -len(CONFIG_FILE_EXTENSION)]
+            if self.state.current_file is not None
+            else ""
+        )
+
     def _update_ui(self) -> None:
         """Update window and tab titles according to state data.
 
         Assure synchronization between ui and state."""
 
-        if (current_dir := self.state.current_dir) is not None:
-            self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {current_dir.name}")
-        else:
+        if self.state.current_file is None:
             self.main_window.setWindowTitle(param.WINDOW_TITLE)
+            self.main_window.header_label.setText("No document")
+        else:
+            name = self.current_file_shortname
+            self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {name}")
+            self.main_window.header_label.setText(
+                f"<p style='text-align:center'>Document <i><b>{name}</b></i> selected.</p>"
+                "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
+            )
+            self.main_window.enable_navigation()
+
+        match self.state.current_action:
+            case Action.NONE:
+                self.action_none()
+
         self.update_status_message()
 
-    @update_ui
-    def open_dir(self, path: Path = None) -> bool:
-        if path is None:
-            path = self.open_dir_dialog()
-            if path is None:
-                return False
-        if not (path.is_dir()):
-            raise FileNotFoundError(f"Directory '{path}' does not exist.")
-        elif self.state.current_dir is not None and path.resolve() == self.state.current_dir:
-            print(f"Directory '{path.name}' already opened.")
-        return self.state.open_dir(path)
+    # -------------------------------
+    #    Functions for each state
+    # ===============================
+
+    def action_none(self):
+        self.main_window.disable_navigation()
+
+    # --------------------------
+    #    Events affecting UI
+    # ==========================
 
     @update_ui
-    def close_dir(self) -> bool:
+    def open_file(self, path: Path = None) -> bool:
+        if path is None:
+            path = self.open_file_dialog()
+            print(f"Selected path: '{path}'.")
+            if path is None:
+                return False
+        return self.state.open_file(path)
+
+    @update_ui
+    def close_file(self) -> bool:
         """Close current directory."""
         self.state.close_doc()
+        return True
+
+    @update_ui
+    def start_scan(self) -> bool:
+        """Launch scan."""
+        print(f"Starting scan of '{self.state.current_file}'...")
         return True
 
     # -----------------
     #      Dialogs
     # =================
 
-    def open_dir_dialog(self) -> Path | None:
+    def open_file_dialog(self) -> Path | None:
         # noinspection PyTypeChecker
-        dirname = QFileDialog.getExistingDirectory(
+        filename, _ = QFileDialog.getOpenFileName(
             self.main_window,
-            "Open pTyX directory",
-            str(self.state.current_dir),
+            "Open pTyX MCQ configuration file",
+            str(self.state.current_file),
+            f"pTyX MCQ configuration file (*{CONFIG_FILE_EXTENSION})",
         )
-        return Path(dirname) if dirname else None
+        return Path(filename) if filename else None
 
     def update_status_message(self) -> None:
         # TODO: implement status message.
