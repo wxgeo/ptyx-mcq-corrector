@@ -8,17 +8,14 @@ from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from tomli_w import dumps
 
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
+from ptyx_mcq_corrector.scan.conflict_handlers import McqRequest
 
 
 class Action(Enum):
     NONE = auto()
-    IN_PROGRESS = auto()
-    MISSING_NAME = auto()
-    DUPLICATE_PAGES = auto()
-    DUPLICATE_NAMES = auto()
-    ANSWERS_REVIEW = auto()
-    MISSING_PAGES = auto()
-    RESULTS = auto()
+    WORK_IN_PROGRESS = auto()
+    PENDING_REQUEST = auto()
+    DISPLAY_RESULTS = auto()
 
 
 class InvalidFileError(OSError):
@@ -35,8 +32,7 @@ class State:
     _recent_files: list[Path] = field(default_factory=list)
     _current_file: Path | None = None
     current_action: Action = Action.NONE
-    current_picture: Path | None = None
-    clickable_areas: list[tuple] = field(default_factory=list)
+    current_request: McqRequest | None = None
 
     @property
     def default_dir(self) -> Path:

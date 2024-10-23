@@ -1,14 +1,19 @@
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Sequence, Callable
+from typing import TYPE_CHECKING, Final, Callable
 
-from PyQt6.QtCore import QObject, Qt, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog, QDialogButtonBox
-from ptyx_mcq.cli import get_template_path, update as update_include
+from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QMessageBox, QFileDialog
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 
 import ptyx_mcq_corrector.param as param
-from ptyx_mcq_corrector.internal_state import State, Action
+from ptyx_mcq_corrector.internal_state import Action
+from ptyx_mcq_corrector.scan.conflict_handlers import (
+    McqRequest,
+    McqAnswersRequest,
+    McqIntegrityRequest,
+    McqNameRequest,
+)
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -61,7 +66,6 @@ def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:
 
 
 class FileEventsHandler(QObject):
-
     def __init__(self, main_window: "McqCorrectorMainWindow"):
         super().__init__(parent=main_window)
         self.main_window: Final = main_window
@@ -110,9 +114,21 @@ class FileEventsHandler(QObject):
             )
             self.main_window.enable_navigation()
 
-        match self.state.current_action:
-            case Action.NONE:
+        match self.state.current_action, self.state.current_request:
+            case Action.NONE, _:
                 self.action_none()
+            case Action.WORK_IN_PROGRESS, _:
+                self.action_work_in_progress()
+            case Action.PENDING_REQUEST, McqIntegrityRequest():
+                self.action_integrity_request()
+            case Action.PENDING_REQUEST, McqNameRequest():
+                self.action_name_request()
+            case Action.PENDING_REQUEST, McqAnswersRequest():
+                self.action_answers_request()
+            case Action.DISPLAY_RESULTS, _:
+                self.action_results()
+            case _:
+                raise NotImplementedError
 
         self.update_status_message()
 
@@ -122,6 +138,21 @@ class FileEventsHandler(QObject):
 
     def action_none(self):
         self.main_window.disable_navigation()
+
+    def action_work_in_progress(self):
+        self.main_window.header_label.setText("Scan en cours...")
+
+    def action_integrity_request(self):
+        print("Integrity request.")
+
+    def action_name_request(self):
+        pass
+
+    def action_answers_request(self):
+        pass
+
+    def action_results(self):
+        pass
 
     # --------------------------
     #    Events affecting UI
@@ -146,6 +177,24 @@ class FileEventsHandler(QObject):
     def start_scan(self) -> bool:
         """Launch scan."""
         print(f"Starting scan of '{self.state.current_file}'...")
+        return True
+
+    @update_ui
+    def on_request(self, request: McqRequest) -> bool:
+        """Handle requests from the scan process."""
+        assert isinstance(request, McqRequest), f"Invalid request: {request!r}"
+        self.state.current_action = Action.PENDING_REQUEST
+        self.state.current_request = request
+        return True
+
+    @update_ui
+    def on_scan_started(self) -> bool:
+        self.state.current_action = Action.WORK_IN_PROGRESS
+        return True
+
+    @update_ui
+    def on_scan_ended(self) -> bool:
+        self.state.current_action = Action.DISPLAY_RESULTS
         return True
 
     # -----------------

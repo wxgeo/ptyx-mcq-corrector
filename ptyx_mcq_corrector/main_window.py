@@ -1,19 +1,17 @@
 #!/usr/bin/python3
-import shutil
 from argparse import Namespace
 from base64 import urlsafe_b64encode
 from pathlib import Path
-from tempfile import mkdtemp
-from typing import Final, Literal
+from typing import Final
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QLabel
+from PyQt6.QtWidgets import QMainWindow, QLabel
 
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
+from ptyx_mcq_corrector.scan.scan_handler import ScannerManager
 
 
 def path_hash(path: Path | str) -> str:
@@ -30,6 +28,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # to get at least the recent files list.
         self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
+        self.scan_handler = ScannerManager(self)
         self.setupUi(self)
 
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
@@ -58,6 +57,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
         # *** 'File' menu ***
         self.action_Open_directory.triggered.connect(lambda: handler.open_file())
+        self.actionScan_documents.triggered.connect(lambda: self.scan_handler.launch_scan())
         # self.action_Save.triggered.connect(lambda: handler.save_doc(side=None, index=None))
         # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
         # self.action_Close.triggered.connect(lambda: handler.close_doc(side=None, index=None))
