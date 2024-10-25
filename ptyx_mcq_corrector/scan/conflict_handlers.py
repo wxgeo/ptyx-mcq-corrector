@@ -6,7 +6,7 @@ from typing import Literal
 
 from ptyx.shell import print_error
 from ptyx_mcq.scan.data_gestion.conflict_handling.config import Config
-from ptyx_mcq.scan.data_gestion.conflict_handling.data_check.base import (
+from ptyx_mcq.scan.data_gestion.conflict_handling.data_check.fix import (
     AbstractNamesReviewer,
     AbstractAnswersReviewer,
     Action,
@@ -14,7 +14,7 @@ from ptyx_mcq.scan.data_gestion.conflict_handling.data_check.base import (
     DefaultAllDataIssuesFixer,
     DataCheckResult,
 )
-from ptyx_mcq.scan.data_gestion.conflict_handling.integrity_check.base import AbstractIntegrityIssuesFixer
+from ptyx_mcq.scan.data_gestion.conflict_handling.integrity_check.fix import AbstractIntegrityIssuesFixer
 from ptyx_mcq.scan.data_gestion.data_handler import DataHandler
 from ptyx_mcq.scan.data_gestion.document_data import Page, PicData
 from ptyx_mcq.tools.config_parser import DocumentId, StudentName

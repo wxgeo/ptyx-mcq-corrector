@@ -65,27 +65,31 @@ class ScannerManager(QObject):
             self.current_thread = thread = QThread(self.main_window)
             self.worker = worker = ScanWorker(current_file)
             worker.moveToThread(self.current_thread)
-            worker.process_started.connect(self.on_scan_end)
-            worker.finished.connect(self.on_scan_end)
+            worker.process_started.connect(self.on_scan_started)
+            worker.finished.connect(self.on_scan_ended)
+            worker.finished.connect(worker.deleteLater)
             worker.request.connect(self.main_window.file_events_handler.on_request)
             # noinspection PyUnresolvedReferences
             thread.started.connect(worker.generate)
             thread.started.connect(lambda: print("Scan thread started..."))
+            thread.finished.connect(lambda: print("Scan thread ended."))
+            thread.finished.connect(thread.deleteLater)
             thread.start()
+            assert self.current_thread is not None
 
-    def on_scan_start(self, process: ProcessInfo):
+    def on_scan_started(self, process: ProcessInfo):
         """Actions executing once the scan process starts."""
+        print("ScannerManager.on_scan_started()")
         assert self.current_process_info is None
         self.current_process_info = process
         self.scan_started.emit()
 
-    def on_scan_end(self):
+    def on_scan_ended(self):
         """Actions executing once the scan process ends."""
+        print("ScannerManager.on_scan_ended()")
+        self.worker = None
         self.current_thread.quit()
         self.current_thread.wait()
-        self.current_thread.deleteLater()
-        self.worker.deleteLater()
-        self.worker = None
         self.current_thread = None
         self.current_process_info = None
         self.scan_ended.emit()
@@ -101,4 +105,4 @@ class ScannerManager(QObject):
             process.join()
             pipe_other_side.send(None)
             print(f"Process {id_} interrupted.")
-            self.on_scan_end()
+            self.on_scan_ended()
