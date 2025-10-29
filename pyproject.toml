@@ -13,7 +13,7 @@ mcq-corrector = "ptyx_mcq_corrector.app:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ptyx-mcq = "^27.1"
+ptyx-mcq = "^30"
 platformdirs = "^4"
 tomli-w = "^1.0.0"
 argcomplete = "^3.1.6"
@@ -25,7 +25,7 @@ ptyx-mcq = {path = "../ptyx-mcq", develop = true}
 ptyx = {path = "../ptyx", develop = true}
 #ptyx = {path = "../ptyx", develop = true}
 black = "^23.10"
-ruff = "^0.3"
+ruff = "^0.9.1"
 tox = "^4.11"
 pytest = "^7.4"
 
