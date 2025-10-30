@@ -1,34 +1,54 @@
-[tool.poetry]
+[project]
 name = "ptyx-mcq-corrector"
 version = "0.1.0"
 description = ""
-authors = ["Nicolas Pourcelot <nicolas.pourcelot@gmail.com>"]
+authors = [{ name = "Nicolas Pourcelot", email = "nicolas.pourcelot@gmail.com" }]
+requires-python = ">=3.10"
 readme = "README.md"
-packages = [{include = "ptyx_mcq_corrector"}]
-include = ["ressources"]
 license = "GPL-3.0-or-later"
+dependencies = [
+    "ptyx-mcq>=30,<31",
+    "platformdirs>=4,<5",
+    "tomli-w>=1.0.0,<2",
+    "argcomplete>=3.1.6,<4",
+    "pyqt6>=6.6.1,<7",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 mcq-corrector = "ptyx_mcq_corrector.app:main"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-ptyx-mcq = "^30"
-platformdirs = "^4"
-tomli-w = "^1.0.0"
-argcomplete = "^3.1.6"
-pyqt6 = "^6.6.1"
+[dependency-groups]
+dev = [
+    "mypy>=1.6.1,<2",
+    "ptyx-mcq",
+    "ptyx",
+    "black~=23.10",
+    "ruff>=0.9.1,<0.10",
+    "pytest~=7.4",
+    "rust-just>=1.43.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.6.1"
-ptyx-mcq = {path = "../ptyx-mcq", develop = true}
-ptyx = {path = "../ptyx", develop = true}
-#ptyx = {path = "../ptyx", develop = true}
-black = "^23.10"
-ruff = "^0.9.1"
-tox = "^4.11"
-pytest = "^7.4"
+[tool.uv]
 
+[tool.uv.sources]
+ptyx-mcq = { path = "../ptyx-mcq", editable = true }
+ptyx = { path = "../ptyx", editable = true }
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "ptyx_mcq_corrector",
+    "ressources",
+]
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "ptyx_mcq_corrector",
+    "ressources",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.black]
 line-length = 110
@@ -45,10 +65,6 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 # Warning: exclude strings are handled as regex by mypy!
 exclude = ["ptyx_mcq_corrector/generated_ui/"]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.tox]
 legacy_tox_ini = """
