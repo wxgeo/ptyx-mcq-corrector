@@ -22,7 +22,7 @@ dev = [
     "mypy>=1.6.1,<2",
     "ptyx-mcq",
     "ptyx",
-    "black~=23.10",
+    "black>=24.10.0,<25",
     "ruff>=0.9.1,<0.10",
     "pytest~=7.4",
     "rust-just>=1.43.0",
@@ -31,8 +31,8 @@ dev = [
 [tool.uv]
 
 [tool.uv.sources]
-ptyx-mcq = { path = "../ptyx-mcq", editable = true }
-ptyx = { path = "../ptyx", editable = true }
+ptyx-mcq = { workspace = true, editable = true }
+ptyx = { workspace = true, editable = true }
 
 [tool.hatch.build.targets.sdist]
 include = [
