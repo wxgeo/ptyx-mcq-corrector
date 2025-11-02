@@ -9,9 +9,9 @@ from traceback import print_exception
 from typing import TypedDict, NotRequired
 
 from PyQt6.QtCore import QObject, pyqtSignal
-from ptyx.shell import print_success, red, yellow
-from ptyx_mcq.cli import scan
-from ptyx_mcq.scan.data_gestion.conflict_handling.config import Config
+from ptyx.pretty_print import print_success, red, yellow
+from ptyx_mcq.scan import scan
+from ptyx_mcq.scan.data.conflict_gestion.config import Config
 from ptyx_mcq.tools.misc import CaptureLog
 
 from ptyx_mcq_corrector.scan.conflict_handlers import (

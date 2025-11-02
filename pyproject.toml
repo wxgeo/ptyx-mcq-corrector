@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 dependencies = [
-    "ptyx-mcq>=30,<31",
+    "ptyx-mcq>=30",
     "platformdirs>=4,<5",
     "tomli-w>=1.0.0,<2",
     "argcomplete>=3.1.6,<4",

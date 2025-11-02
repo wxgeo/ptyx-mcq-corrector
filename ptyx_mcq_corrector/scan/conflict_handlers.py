@@ -4,9 +4,10 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Literal
 
-from ptyx.shell import print_error
-from ptyx_mcq.scan.data_gestion.conflict_handling.config import Config
-from ptyx_mcq.scan.data_gestion.conflict_handling.data_check.fix import (
+from ptyx.pretty_print import print_error
+from ptyx_mcq.scan.data import ScanData, Picture
+from ptyx_mcq.scan.data.conflict_gestion.config import Config
+from ptyx_mcq.scan.data.conflict_gestion.data_check.fix import (
     AbstractNamesReviewer,
     AbstractAnswersReviewer,
     Action,
@@ -14,10 +15,8 @@ from ptyx_mcq.scan.data_gestion.conflict_handling.data_check.fix import (
     DefaultAllDataIssuesFixer,
     DataCheckResult,
 )
-from ptyx_mcq.scan.data_gestion.conflict_handling.integrity_check.fix import AbstractIntegrityIssuesFixer
-from ptyx_mcq.scan.data_gestion.data_handler import DataHandler
-from ptyx_mcq.scan.data_gestion.document_data import Page, PicData
-from ptyx_mcq.tools.config_parser import DocumentId, StudentName
+from ptyx_mcq.scan.data.conflict_gestion.integrity_check.fix import AbstractIntegrityIssuesFixer
+from ptyx_mcq.tools.config_parser import DocumentId, StudentName, PageNum
 from ptyx_mcq.tools.misc import copy_docstring
 
 
@@ -58,7 +57,7 @@ class McqNameRequest(McqRequest):
 class McqAnswersRequest(McqRequest):
     """McqRequest to be sent to main process, asking for answers review."""
 
-    pic_data: PicData
+    picture: Picture
 
 
 class IntegrityAnswer(Enum):
@@ -86,7 +85,7 @@ class CustomDocHeaderDisplayer(AbstractDocHeaderDisplayer):
     It does nothing, since document display is already handled by the GUI.
     """
 
-    def __init__(self, data_storage: DataHandler, doc_id: DocumentId):
+    def __init__(self, scan_data: ScanData, doc_id: DocumentId):
         pass
 
     def display(self):
@@ -99,16 +98,9 @@ class CustomDocHeaderDisplayer(AbstractDocHeaderDisplayer):
 class CustomIntegrityIssuesFixer(AbstractIntegrityIssuesFixer):
     """Custom implementation of AbstractIntegrityIssuesFixer."""
 
-    def select_version(
-        self, scanned_doc_id: DocumentId, temp_doc_id: DocumentId, page: Page
-    ) -> Literal[1, 2]:
+    def select_version(self, pic1: Picture, pic2: Picture) -> Literal[1, 2]:
         connection: Connection = Config.extensions_data["connection"]
-        connection.send(
-            McqIntegrityRequest(
-                pic_path1=self.data_storage.absolute_pic_path_for_page(scanned_doc_id, page),
-                pic_path2=self.data_storage.absolute_pic_path_for_page(temp_doc_id, page),
-            )
-        )
+        connection.send(McqIntegrityRequest(pic_path1=pic1.path, pic_path2=pic2.path))
         match (answer := connection.recv()):
             case IntegrityAnswer.KEEP_FIRST:
                 return 1
@@ -132,7 +124,7 @@ class CustomNamesReviewer(AbstractNamesReviewer):
         connection: Connection = Config.extensions_data["connection"]
         connection.send(
             McqNameRequest(
-                pic_path=self.data_storage.absolute_pic_path_for_page(doc_id=doc_id, page=Page(1)),
+                pic_path=self.scan_data.index[doc_id].pages[PageNum(1)].pic.path,
                 suggestion=suggestion,
             )
         )
@@ -146,13 +138,13 @@ class CustomNamesReviewer(AbstractNamesReviewer):
 class CustomAnswersReviewer(AbstractAnswersReviewer):
     """Custom implementation of AbstractNamesReviewer."""
 
-    def edit_answers(self, doc_id: DocumentId, page: Page) -> tuple[Action, bool]:
+    def edit_answers(self, doc_id: DocumentId, page_num: PageNum) -> Action:
         connection: Connection = Config.extensions_data["connection"]
-        connection.send(McqAnswersRequest(pic_data=self.data[doc_id].pages[page]))
+        connection.send(McqAnswersRequest(picture=self.scan_data.index[doc_id].pages[page_num].pic))
         answer = connection.recv()
         match answer:
             case Action(), bool():
-                return answer
+                return answer[0]
             case _:
                 print_error(f"I can't handle the following answer: {answer!r}")
                 raise NotImplementedError
