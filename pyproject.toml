@@ -26,6 +26,7 @@ dev = [
     "ruff>=0.9.1,<0.10",
     "pytest~=7.4",
     "rust-just>=1.43.0",
+    "python-semantic-release>=10",
 ]
 
 [tool.uv]
@@ -49,6 +50,17 @@ include = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+build_command = """
+    uv lock --upgrade-package "$PACKAGE_NAME"
+    git add uv.lock
+    uv build
+"""
+
+[semantic_release.remote.token]
+env = "GH_TOKEN"
 
 [tool.black]
 line-length = 110
