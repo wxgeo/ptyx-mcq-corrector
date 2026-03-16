@@ -35,21 +35,13 @@ dev = [
 ptyx-mcq = { workspace = true, editable = true }
 ptyx = { workspace = true, editable = true }
 
-[tool.hatch.build.targets.sdist]
-include = [
-    "ptyx_mcq_corrector",
-    "ressources",
-]
-
-[tool.hatch.build.targets.wheel]
-include = [
-    "ptyx_mcq_corrector",
-    "ressources",
-]
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.6,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name= "ptyx_mcq_corrector"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
