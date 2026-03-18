@@ -21,17 +21,10 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 
-from ptyx_mcq_corrector.internal_state import Action
 from ptyx_mcq_corrector.scan.scan_worker import ProcessInfo, ScanWorker
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
-from ptyx_mcq_corrector.scan.conflict_handlers import (
-    McqAnswersRequest,
-    McqNameRequest,
-    McqIntegrityRequest,
-    McqRequest,
-)
 
 
 class ScannerManager(QObject):

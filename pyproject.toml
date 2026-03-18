@@ -40,7 +40,7 @@ requires = ["uv_build>=0.9.6,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-root = ""
+module-root = "src"
 module-name= "ptyx_mcq_corrector"
 
 [tool.semantic_release]
@@ -56,11 +56,11 @@ env = "GH_TOKEN"
 
 [tool.black]
 line-length = 110
-extend-exclude = "ptyx_mcq_corrector/generated_ui/.*"
+extend-exclude = "src/ptyx_mcq_corrector/generated_ui/.*"
 
 [tool.ruff]
 line-length = 110
-extend-exclude = ["ptyx_mcq_corrector/generated_ui/"]
+extend-exclude = ["src/ptyx_mcq_corrector/generated_ui/"]
 
 [tool.mypy]
 implicit_optional = true

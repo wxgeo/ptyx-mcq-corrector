@@ -139,7 +139,7 @@ def scan_path(path: Path, connection: Connection) -> None:
         # using pickle, so only serializable objects can be shared).
         pickle_incompatibility = False
         try:
-            if type(pickle.loads(pickle.dumps(e))) != type(e):
+            if type(pickle.loads(pickle.dumps(e))) is not type(e):
                 pickle_incompatibility = True
         except BaseException:
             pickle_incompatibility = True

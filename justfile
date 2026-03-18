@@ -1,53 +1,25 @@
-set shell := ["bash", "-cu"]
-
-uv := "env -u VIRTUAL_ENV uv"
 project := "ptyx_mcq_corrector"
 
-default:
-    just --list
-    
-    
-sync:
-   {{uv}} run sync
-   
+import "../justfile"
+import "../justfiles/ui.just"
+
 doc:
-    {{uv}} run make -C doc autodoc
-    {{uv}} run make -C doc html
-
+    @cd ".." && just doc {{project}}
 ruff:
-    {{uv}} run ruff check {{project}} tests
-
-mypy: 
-    {{uv}} run mypy {{project}} tests
-
+    @cd ".." && just ruff {{project}}
+mypy:
+    @cd ".." && just mypy {{project}}
 pytest:
-    {{uv}} run pytest tests
-    
-test: ruff mypy pytest
-
-push:
-    git push
-    git push --tags
-    
-version:
-    {{uv}} run semantic-release --noop version
-
-update-version:
-    {{uv}} run semantic-release version
-	
-build-new-version: update-version
-    rm -rf dist/
-    {{uv}} build
-    
-publish: build-new-version
-    {{uv}} publish
-
+    @cd ".." && just pytest {{project}}
 fix:
-    {{uv}} run black .
-    {{uv}} run ruff check --fix {{project}} tests
-    
-lock:
-    git commit uv.lock -m "dev: update uv.lock"
-
+    @cd ".." && just fix {{project}}
+test:
+    @cd ".." && just test {{project}}
+push:
+    @cd ".." && just push {{project}}
+build:
+    @cd ".." && just build {{project}}
+release:
+    @cd ".." && just release {{project}}
 ui:
-    ./.build_ui
+    @cd ".." && just ui {{project}}

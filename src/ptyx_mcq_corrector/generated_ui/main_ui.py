@@ -22,12 +22,16 @@ class Ui_MainWindow(object):
         self.previous_button = QtWidgets.QPushButton(parent=self.centralwidget)
         self.previous_button.setObjectName("previous_button")
         self.horizontalLayout.addWidget(self.previous_button)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem)
         self.header_label = QtWidgets.QLabel(parent=self.centralwidget)
         self.header_label.setObjectName("header_label")
         self.horizontalLayout.addWidget(self.header_label)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem1)
         self.next_button = QtWidgets.QPushButton(parent=self.centralwidget)
         self.next_button.setObjectName("next_button")
@@ -86,7 +90,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_About.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.action_Quit.triggered.connect(MainWindow.close) # type: ignore
+        self.action_Quit.triggered.connect(MainWindow.close)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -111,6 +115,7 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
