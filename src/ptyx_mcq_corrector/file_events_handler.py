@@ -52,9 +52,9 @@ def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:
             else:
                 print(f.__name__)
             update = f(self, *args, **kw)
-            assert isinstance(
-                update, bool
-            ), f"Method `FileEventsHandler.{f.__name__}` must return a boolean, not {update!r}"
+            assert isinstance(update, bool), (
+                f"Method `FileEventsHandler.{f.__name__}` must return a boolean, not {update!r}"
+            )
             if update and not current_freeze_value:
                 self._update_ui()
             return update

@@ -101,7 +101,7 @@ class CustomIntegrityIssuesFixer(AbstractIntegrityIssuesFixer):
     def select_version(self, pic1: Picture, pic2: Picture) -> Literal[1, 2]:
         connection: Connection = Config.extensions_data["connection"]
         connection.send(McqIntegrityRequest(pic_path1=pic1.path, pic_path2=pic2.path))
-        match (answer := connection.recv()):
+        match answer := connection.recv():
             case IntegrityAnswer.KEEP_FIRST:
                 return 1
             case IntegrityAnswer.KEEP_SECOND:
