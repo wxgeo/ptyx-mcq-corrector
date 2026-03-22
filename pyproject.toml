@@ -46,10 +46,6 @@ build_command = """
 [semantic_release.remote.token]
 env = "GH_TOKEN"
 
-[tool.black]
-line-length = 110
-extend-exclude = "src/ptyx_mcq_corrector/generated_ui/.*"
-
 [tool.ruff]
 line-length = 110
 extend-exclude = ["src/ptyx_mcq_corrector/generated_ui/"]
@@ -62,19 +58,4 @@ warn_unused_ignores = true
 # Warning: exclude strings are handled as regex by mypy!
 exclude = ["ptyx_mcq_corrector/generated_ui/"]
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-skipsdist = true
-isolated_build = True
-envlist = py311
 
-[testenv]
-passenv = HOME,DISPLAY,XAUTHORITY
-allowlist_externals = poetry
-commands =
-    poetry install -v
-    poetry run ruff check ptyx_mcq_corrector tests
-    poetry run mypy ptyx_mcq_correct tests
-    poetry run pytest tests
-"""
