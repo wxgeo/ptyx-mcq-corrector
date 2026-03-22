@@ -19,14 +19,6 @@ mcq-corrector = "ptyx_mcq_corrector.app:main"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.6.1,<2",
-    "ptyx-mcq",
-    "ptyx",
-    "black>=24.10.0,<25",
-    "ruff>=0.9.1,<0.10",
-    "pytest~=7.4",
-    "rust-just>=1.43.0",
-    "python-semantic-release>=10",
 ]
 
 [tool.uv]
