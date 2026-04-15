@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Final
 
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QMainWindow, QLabel
+from PyQt6.QtWidgets import QLabel, QMainWindow
 
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
@@ -102,6 +102,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         assert event is not None
         assert self is not None
         if self.request_to_close():
+            self.scan_handler.abort_scan()
             event.accept()
         else:
             event.ignore()

@@ -1,9 +1,9 @@
-import tomllib
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Iterator, Any, Self
+from typing import Any, Iterator, Self
 
+import tomllib
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from tomli_w import dumps
 
@@ -41,7 +41,9 @@ class State:
         This is the folder containing the current file, if saved on disk.
         Else, it is last used directory.
         """
-        return self._current_file.parent if self._current_file is not None else Path.cwd()
+        return (
+            self._current_file.parent if self._current_file is not None else Path.cwd()
+        )
 
     @property
     def current_file(self) -> Path | None:
@@ -80,7 +82,9 @@ class State:
     def _remember_file(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
         self._recent_files = [new_path] + [
-            path for path in self._recent_files if path.resolve() != new_path.resolve() and path.is_dir()
+            path
+            for path in self._recent_files
+            if path.resolve() != new_path.resolve() and path.is_dir()
         ]
         if len(self._recent_files) > MAX_RECENT_FILES:
             self._recent_files.pop()
@@ -107,7 +111,7 @@ class State:
         }
 
     @classmethod
-    def _from_dict(cls, d: dict[str, Any]) -> Self:
+    def _from_dict(cls, d: dict[str, Any]) -> "State":
         recent_files = [Path(s) for s in d.get("recent_files", [])]
         current_file = Path(d.get("current_file", Path.cwd()))
         return State(
@@ -124,7 +128,7 @@ class State:
         print(f"Config saved in {CONFIG_PATH}")
 
     @classmethod
-    def load(cls) -> Self:
+    def load(cls) -> "State":
         try:
             settings_dict = tomllib.loads(CONFIG_PATH.read_text("utf8"))
         except FileNotFoundError:

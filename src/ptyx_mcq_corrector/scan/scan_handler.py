@@ -19,7 +19,7 @@ Architecture:
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QThread, pyqtSignal, QObject
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from ptyx_mcq_corrector.scan.scan_worker import ProcessInfo, ScanWorker
 
@@ -81,9 +81,10 @@ class ScannerManager(QObject):
         """Actions executing once the scan process ends."""
         print("ScannerManager.on_scan_ended()")
         self.worker = None
-        self.current_thread.quit()
-        self.current_thread.wait()
-        self.current_thread = None
+        if self.current_thread is not None:
+            self.current_thread.quit()
+            self.current_thread.wait()
+            self.current_thread = None
         self.current_process_info = None
         self.scan_ended.emit()
 
