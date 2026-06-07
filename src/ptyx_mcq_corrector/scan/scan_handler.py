@@ -61,6 +61,7 @@ class ScannerManager(QObject):
             worker.process_started.connect(self.on_scan_started)
             worker.finished.connect(self.on_scan_ended)
             worker.finished.connect(worker.deleteLater)
+            # Make the link between the scan process and the main process.
             worker.request.connect(self.main_window.file_events_handler.on_request)
             # noinspection PyUnresolvedReferences
             thread.started.connect(worker.generate)

@@ -124,7 +124,7 @@ class CustomNamesReviewer(AbstractNamesReviewer):
         connection: Connection = Config.extensions_data["connection"]
         connection.send(
             McqNameRequest(
-                pic_path=self.scan_data.index[doc_id].pages[PageNum(1)].pic.path,
+                pic_path=self.scan_data.all_docs_index[doc_id].pages_index[PageNum(1)].pic.path,
                 suggestion=suggestion,
             )
         )
@@ -138,9 +138,11 @@ class CustomNamesReviewer(AbstractNamesReviewer):
 class CustomAnswersReviewer(AbstractAnswersReviewer):
     """Custom implementation of AbstractNamesReviewer."""
 
-    def edit_answers(self, doc_id: DocumentId, page_num: PageNum) -> Action:
+    def _edit_answers(self, doc_id: DocumentId, page_num: PageNum) -> Action:
         connection: Connection = Config.extensions_data["connection"]
-        connection.send(McqAnswersRequest(picture=self.scan_data.index[doc_id].pages[page_num].pic))
+        connection.send(
+            McqAnswersRequest(picture=self.scan_data.all_docs_index[doc_id].pages_index[page_num].pic)
+        )
         answer = connection.recv()
         match answer:
             case Action(), bool():
