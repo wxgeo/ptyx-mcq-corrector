@@ -2,11 +2,11 @@ from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Callable
 
-from PyQt6.QtCore import QObject, Qt
+from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
-from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 
 import ptyx_mcq_corrector.param as param
+from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import Action
 from ptyx_mcq_corrector.scan.conflict_handlers import (
     McqRequest,
@@ -47,9 +47,7 @@ def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:
             self.main_window.setUpdatesEnabled(False)
         try:
             if param.DEBUG:
-                _args = [repr(arg) for arg in args] + [
-                    f"{key}={val!r}" for (key, val) in kw.items()
-                ]
+                _args = [repr(arg) for arg in args] + [f"{key}={val!r}" for (key, val) in kw.items()]
                 print(f"{f.__name__}({', '.join(_args)})")
             else:
                 print(f.__name__)
@@ -110,18 +108,19 @@ class FileEventsHandler(QObject):
         else:
             name = self.current_file_shortname
             self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {name}")
-            # self.main_window.header_label.setTextFormat(Qt.TextFormat.RichText)
-            # self.main_window.header_label.setTextInteractionFlags(
-            #     Qt.TextInteractionFlag.TextBrowserInteraction
-            # )
+            # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
             self.main_window.header_label.setText(
-                f"<p style='text-align:center'>Document <i><b><a href='open_file'>{name}</a></b></i> selected.</p>"
+                f"<p style='text-align:center'>Document <i><b><a href='#'>{name}</a></b></i> selected.</p>"
                 "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
             )
+            try:
+                self.main_window.header_label.linkActivated.disconnect()
+            except TypeError:
+                pass  # no connection existed yet
             self.main_window.header_label.linkActivated.connect(
                 lambda _: self.main_window.file_events_handler.open_file()
             )
-            # self.main_window.header_label.setOpenExternalLinks(False)
+            self.main_window.header_label.setOpenExternalLinks(False)
             self.main_window.enable_navigation()
 
         match self.state.current_action, self.state.current_request:

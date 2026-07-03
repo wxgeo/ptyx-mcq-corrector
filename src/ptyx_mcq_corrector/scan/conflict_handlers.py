@@ -16,7 +16,7 @@ from ptyx_mcq.scan.data.conflict_gestion.data_check.fix import (
     DataCheckResult,
 )
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.fix import AbstractIntegrityIssuesFixer
-from ptyx_mcq.tools.config_parser import DocumentId, StudentName, PageNum
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId, StudentName, PageNum
 from ptyx_mcq.tools.misc import copy_docstring
 
 
