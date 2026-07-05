@@ -1,12 +1,12 @@
+import tomllib
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Iterator, Self
+from typing import Any, Iterator
 
-import tomllib
-from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from tomli_w import dumps
 
+from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 from ptyx_mcq_corrector.scan.conflict_handlers import McqRequest
 
@@ -41,9 +41,7 @@ class State:
         This is the folder containing the current file, if saved on disk.
         Else, it is last used directory.
         """
-        return (
-            self._current_file.parent if self._current_file is not None else Path.cwd()
-        )
+        return self._current_file.parent if self._current_file is not None else Path.cwd()
 
     @property
     def current_file(self) -> Path | None:
@@ -82,9 +80,7 @@ class State:
     def _remember_file(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
         self._recent_files = [new_path] + [
-            path
-            for path in self._recent_files
-            if path.resolve() != new_path.resolve() and path.is_dir()
+            path for path in self._recent_files if path.resolve() != new_path.resolve() and path.is_dir()
         ]
         if len(self._recent_files) > MAX_RECENT_FILES:
             self._recent_files.pop()
@@ -120,6 +116,7 @@ class State:
         )
 
     def save(self) -> None:
+        """Save configuration."""
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         settings_data = self._as_dict()
         toml = dumps(settings_data)
@@ -129,6 +126,7 @@ class State:
 
     @classmethod
     def load(cls) -> "State":
+        """Load configuration."""
         try:
             settings_dict = tomllib.loads(CONFIG_PATH.read_text("utf8"))
         except FileNotFoundError:

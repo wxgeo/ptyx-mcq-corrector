@@ -58,6 +58,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # *** 'File' menu ***
         self.action_Open_directory.triggered.connect(lambda: handler.open_file())
         self.actionScan_documents.triggered.connect(lambda: self.scan_handler.launch_scan())
+        self.action_Reset_scan.triggered.connect(lambda: handler.reset())
         # self.action_Save.triggered.connect(lambda: handler.save_doc(side=None, index=None))
         # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
         # self.action_Close.triggered.connect(lambda: handler.close_doc(side=None, index=None))

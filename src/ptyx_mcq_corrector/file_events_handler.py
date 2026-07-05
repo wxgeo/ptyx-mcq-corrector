@@ -1,5 +1,6 @@
 from functools import wraps
 from pathlib import Path
+from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
 from PyQt6.QtCore import QObject
@@ -18,9 +19,11 @@ from ptyx_mcq_corrector.scan.conflict_handlers import (
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
-Abort = QMessageBox.StandardButton.Abort
-Discard = QMessageBox.StandardButton.Discard
-Save = QMessageBox.StandardButton.Save
+StandardButton = QMessageBox.StandardButton
+# Abort = QMessageBox.StandardButton.Abort
+# Discard = QMessageBox.StandardButton.Discard
+# Save = QMessageBox.StandardButton.Save
+
 
 FILES_FILTER = (
     "All supported Files (*.ex *.ptyx)",
@@ -166,6 +169,24 @@ class FileEventsHandler(QObject):
     # --------------------------
     #    Events affecting UI
     # ==========================
+
+    @update_ui
+    def reset(self) -> bool:
+        # Ask for confirmation.
+        if (
+            QMessageBox.question(
+                self.main_window,
+                "Remove previous scan data",
+                "Are you sure you want to remove any existing scan data?",
+                StandardButton.Yes | StandardButton.Cancel,
+                StandardButton.Cancel,
+            )
+            == StandardButton.Yes
+        ):
+            rmtree(folder := (self.state.current_file.parent / "out"))
+            print(f"Folder '{folder}' was removed.")
+            return True
+        return False
 
     @update_ui
     def open_file(self, path: Path | None = None) -> bool:
