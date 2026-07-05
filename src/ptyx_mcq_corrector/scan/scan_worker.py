@@ -9,11 +9,11 @@ from traceback import print_exception
 from typing import TypedDict, NotRequired
 
 from PyQt6.QtCore import QObject, pyqtSignal
+
 from ptyx.pretty_print import print_success, red, yellow
 from ptyx_mcq.scan import scan
 from ptyx_mcq.scan.data.conflict_gestion.config import Config
 from ptyx_mcq.tools.misc import CaptureLog
-
 from ptyx_mcq_corrector.scan.conflict_handlers import (
     McqRequest,
     END_CONNECTION_REQUEST,
@@ -52,24 +52,21 @@ class ScanWorker(QObject):
         self.path = path
         assert self.path is not None
 
-    def generate(self) -> None:
+    def scan(self) -> None:
+        """Start to scan."""
         print("ScanWorker.generate()")
         return_data: ScanWorkerInfo = {"path": self.path, "log": ""}
         # log: CaptureLog | str = "Error, log couldn't be captured!"
         with CaptureLog() as log:
             try:
-                return_data = self._generate()
+                return_data = self._scan()
             finally:
                 return_data["log"] = log.getvalue()
                 print("End of task: emit 'finished' event.")
                 self.finished.emit(return_data)
 
-    def _generate(self) -> ScanWorkerInfo:
-        """Generate a LaTeX file.
-
-        If `doc_path` is None, the LaTeX file corresponds to the current edited document.
-        Else, `doc_path` must point to a .ptyx or .ex file.
-        """
+    def _scan(self) -> ScanWorkerInfo:
+        """Start to scan."""
         # main_window = self.main_window
         # doc = main_window.settings.current_doc
         # editor = main_window.current_mcq_editor
@@ -93,9 +90,8 @@ class ScanWorker(QObject):
                     other_side,
                 ),
             )
-            # Share process with main thread, to enable user to kill it if needed.
-            # This may prove useful if there is an infinite loop in user code
-            # for example.
+            # Share the process identifiant with the main thread, to enable the user to kill it if needed.
+            # This enables to abort the scan process from the main window.
             self.process_started.emit(ProcessInfo(process, this_side, other_side))
             process.start()
             print(f"Waiting for process {process.pid}")

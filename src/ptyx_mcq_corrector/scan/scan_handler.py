@@ -48,24 +48,29 @@ class ScannerManager(QObject):
         return self.current_thread is not None
 
     def launch_scan(self):
-        """Launch a new thread to scan selected documents.
+        """Launch a new thread to start the scan process.
 
         In this new thread, a ScanWorker instance will handle the scan
         and launch a new process.
+
+        This is the main entry point of the scan process.
         """
         current_file = self.main_window.state.current_file
         if current_file is not None:
+            # Create a new thread to handle the scan process.
             self.current_thread = thread = QThread(self.main_window)
+            # Create a worker and move it to this new thread.
             self.worker = worker = ScanWorker(current_file)
             worker.moveToThread(self.current_thread)
+            # Connect the worker signals to the main thread.
             worker.process_started.connect(self.on_scan_started)
             worker.finished.connect(self.on_scan_ended)
             worker.finished.connect(worker.deleteLater)
-            # Make the link between the scan process and the main process.
+            # The `request` signal is used to pass information from the scan process to the main process
+            # during the scan.
             worker.request.connect(self.main_window.file_events_handler.on_request)
-            # noinspection PyUnresolvedReferences
-            thread.started.connect(worker.generate)
             thread.started.connect(lambda: print("Scan thread started..."))
+            thread.started.connect(worker.scan)
             thread.finished.connect(lambda: print("Scan thread ended."))
             thread.finished.connect(thread.deleteLater)
             thread.start()
