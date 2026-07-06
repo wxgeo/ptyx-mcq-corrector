@@ -7,6 +7,7 @@ from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq.scan import MCQPictureParser
+from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
@@ -65,6 +66,21 @@ class State:
             # Update the parser.
             self._parser = MCQPictureParser(current_file)
         return self._parser
+
+    @property
+    def has_integrity_issues(self) -> bool | None:
+        if (parser := self.parser) is None:
+            return None
+        integrity_check_results = IntegrityChecker(parser.scan_data).run()
+        return len(integrity_check_results.duplicates) + len(integrity_check_results.missing_pages) > 0
+
+    @property
+    def has_data_issues(self) -> bool | None:
+        if (parser := self.parser) is None:
+            return None
+        # TODO: is it safe to run it if integrity issues remain?
+        data_check_results = DataChecker(parser.scan_data).run()
+        return len(data_check_results.names_to_review) + len(data_check_results.ambiguous_answers) > 0
 
     @property
     def default_dir(self) -> Path:

@@ -23,8 +23,9 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from ptyx_mcq.scan import MCQPictureParser
 from ptyx_mcq.scan.data import PageData, AnalyzeResult
 
+
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
 P = ParamSpec("P")
 R = TypeVar("R")

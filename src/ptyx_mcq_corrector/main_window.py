@@ -6,7 +6,7 @@ from typing import Final
 
 from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QLabel, QMainWindow
+from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
@@ -30,6 +30,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
         self.setupUi(self)
+        self.issuesView.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         # Management of the scan processes takes place in another thread, to keep the UI responsive.
         self.scan_handler = ScanManager(self)

@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QWidget, QComboBox, QLabel, QHBoxLayout, QVBoxLayout
 
 
 class ImageDisplayWindow(QWidget):
-    def __init__(self, parent: QWidget = None):
+    def __init__(self, parent: QWidget):
         super().__init__(parent)
 
         # Create the combo box for selecting an image
@@ -14,7 +14,7 @@ class ImageDisplayWindow(QWidget):
         self.comboBox.addItem("Image 2")
 
         # Connect the combo box selection change to a method
-        self.comboBox.currentIndexChanged.connect(self.select_image)
+        # self.comboBox.currentIndexChanged.connect(self.select_image)
 
         # Create labels for the images
         self.label1 = QLabel(self)
@@ -41,11 +41,11 @@ class ImageDisplayWindow(QWidget):
         self.label1.setPixmap(QPixmap(path1))
         self.label2.setPixmap(QPixmap(path2))
 
-    # Method to update the images based on combo box selection
-    def update_images(self, index: int) -> None:
-        if index == 0:
-            self.label1.setPixmap(self.pixmap1)
-            self.label2.setPixmap(self.pixmap1)
-        else:
-            self.label1.setPixmap(self.pixmap2)
-            self.label2.setPixmap(self.pixmap2)
+    # # Method to update the images based on combo box selection
+    # def update_images(self, index: int) -> None:
+    #     if index == 0:
+    #         self.label1.setPixmap(self.pixmap1)
+    #         self.label2.setPixmap(self.pixmap1)
+    #     else:
+    #         self.label1.setPixmap(self.pixmap2)
+    #         self.label2.setPixmap(self.pixmap2)
