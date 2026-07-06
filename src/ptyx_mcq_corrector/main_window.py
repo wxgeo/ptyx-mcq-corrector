@@ -4,6 +4,7 @@ from base64 import urlsafe_b64encode
 from pathlib import Path
 from typing import Final
 
+from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QLabel, QMainWindow
 
@@ -11,7 +12,7 @@ from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
-from ptyx_mcq_corrector.scan.scan_handler import ScannerManager
+from ptyx_mcq_corrector.scan.scan_handler import ScanManager
 
 
 def path_hash(path: Path | str) -> str:
@@ -22,14 +23,18 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # restore_session_signal = pyqtSignal(name="restore_session_signal")
     # new_session_signal = pyqtSignal(name="new_session_signal")
 
-    def __init__(self, args: Namespace = None) -> None:
+    def __init__(self, args: Namespace) -> None:
         super().__init__(parent=None)
         # Always load state, even when opening a new session,
         # to get at least the recent files list.
         self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
-        self.scan_handler = ScannerManager(self)
         self.setupUi(self)
+
+        # Management of the scan processes takes place in another thread, to keep the UI responsive.
+        self.scan_handler = ScanManager(self)
+        self.scan_thread = QThread(self)
+        self.scan_handler.moveToThread(self.scan_thread)
 
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
         # print("created temporary directory", self.tmp_dir)
@@ -50,6 +55,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # -------------------
         self.connect_menu_signals()
         self.file_events_handler.finalize(args.path)
+        self.scan_thread.start()
 
     def connect_menu_signals(self) -> None:
         # Don't change handler variable value (because of name binding process in lambdas).
@@ -57,11 +63,15 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
         # *** 'File' menu ***
         self.action_Open_directory.triggered.connect(lambda: handler.open_file())
-        self.actionScan_documents.triggered.connect(lambda: self.scan_handler.launch_scan())
+        # Don't use lambda, else the thread will not be detected correctly by Qt.
+        self.actionScan_documents.triggered.connect(self.scan_handler.scan)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset())
+        self.scan_handler.scan_progress.connect(handler.on_scan_in_progress)
+        # self.action_button.clicked.connect(self.scan_handler.toggle_action)
         # self.action_Save.triggered.connect(lambda: handler.save_doc(side=None, index=None))
         # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
-        # self.action_Close.triggered.connect(lambda: handler.close_doc(side=None, index=None))
+        self.action_Close.triggered.connect(lambda: handler.close_file())
+        self.menu_File.aboutToShow.connect(self.update_recent_files_menu)
         # self.actionN_ew_Session.triggered.connect(lambda: handler.new_session())
         # self.menuFichier.aboutToShow.connect(self.update_recent_files_menu)
         #
@@ -103,7 +113,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         assert event is not None
         assert self is not None
         if self.request_to_close():
-            self.scan_handler.abort_scan()
+            self.file_events_handler.abort()
+            self.scan_thread.quit()
+            self.scan_thread.wait()
             event.accept()
         else:
             event.ignore()
@@ -127,11 +139,11 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     def update_recent_files_menu(self) -> None:
         recent_files = tuple(self.state.recent_files)
         if not recent_files:
-            self.menu_Recent_Files.menuAction().setVisible(False)
+            self.menu_Recent_files.menuAction().setVisible(False)
         else:
-            self.menu_Recent_Files.clear()
+            self.menu_Recent_files.clear()
             for recent_file in recent_files:
-                action = self.menu_Recent_Files.addAction(recent_file.name)
+                action = self.menu_Recent_files.addAction(recent_file.name)
                 # This is tricky.
                 # 1. Function provided must not use `recent_file` as unbound variable,
                 # since its value will change later in this loop.
@@ -141,11 +153,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
                 # it detects that the function have at least one argument.
                 # So, we have to provide a first dummy argument to the following lambda function.
                 action.triggered.connect(
-                    lambda _, paths=[recent_file]: self.file_events_handler.open_doc(
-                        side=None, paths=list(paths)
-                    )
+                    lambda _, path=recent_file: self.file_events_handler.open_file(path=path)
                 )
-            self.menu_Recent_Files.menuAction().setVisible(True)
+            self.menu_Recent_files.menuAction().setVisible(True)
 
     def add_desktop_menu_entry(self) -> None:
         pass

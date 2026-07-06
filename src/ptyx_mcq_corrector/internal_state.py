@@ -1,5 +1,4 @@
 import tomllib
-from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Iterator
@@ -7,32 +6,65 @@ from typing import Any, Iterator
 from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
+from ptyx_mcq.scan import MCQPictureParser
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
-from ptyx_mcq_corrector.scan.conflict_handlers import McqRequest
 
 
-class Action(Enum):
-    NONE = auto()
-    WORK_IN_PROGRESS = auto()
-    PENDING_REQUEST = auto()
-    DISPLAY_RESULTS = auto()
+# class Action(Enum):
+#     NONE = auto()
+#     WORK_IN_PROGRESS = auto()
+#     PENDING_REQUEST = auto()
+#     DISPLAY_RESULTS = auto()
+
+
+# class Step(Enum):
+#     NO_FILE = auto()
+#     FILE_SELECTED = auto()
+#     SCAN_IN_PROGRESS = auto()
+#     SCAN_FINISHED = auto()
+#     ISSUES_FIXED = auto()
+
+
+class ScanState(Enum):
+    TO_DO = auto()
+    IN_PROGRESS = auto()
+    DONE = auto()
 
 
 class InvalidFileError(OSError):
     """Error raised when the file type is invalid."""
 
 
-@dataclass(kw_only=True)
 class State:
     """The application current state.
 
     This includes recent files.
     """
 
-    _recent_files: list[Path] = field(default_factory=list)
-    _current_file: Path | None = None
-    current_action: Action = Action.NONE
-    current_request: McqRequest | None = None
+    def __init__(self, recent_files: list[Path] | None = None, current_file: Path | None = None):
+        self._recent_files: list[Path] = recent_files or []
+        self._current_file: Path | None = current_file
+        self._parser: MCQPictureParser | None = None
+        self.scan_state: ScanState = ScanState.TO_DO
+
+    # @property
+    # def step(self) -> Step:
+    #     if self.current_file is None:
+    #         return Step.NO_FILE
+    #     if self._scan_state = UNDONE
+
+    @property
+    def parser(self) -> MCQPictureParser | None:
+        current_file = self._current_file
+        if current_file is None:
+            self._parser = None
+        elif (
+            self._parser is None
+            or self._parser.scan_data.paths.configfile.resolve() != current_file.resolve()
+        ):
+            # Update the parser.
+            self._parser = MCQPictureParser(current_file)
+        return self._parser
 
     @property
     def default_dir(self) -> Path:
@@ -56,10 +88,11 @@ class State:
 
         Return a boolean, indicating if the current directory was effectively changed."""
         # Attention, paths must be resolved to don't miss duplicates (symlinks...)!
+
         # Do nothing if it's the current directory.
         if not config_file.is_file():
             raise FileNotFoundError(f"File '{config_file}' does not exist.")
-        elif config_file.resolve() == self._current_file.resolve():
+        elif self._current_file is not None and config_file.resolve() == self._current_file.resolve():
             print(f"File '{config_file.name}' already opened.")
             return False
         elif not config_file.name.endswith(CONFIG_FILE_EXTENSION):
@@ -72,10 +105,7 @@ class State:
         if self._current_file is not None:
             self._remember_file(self._current_file)
         # Reset state, except for recent directories list.
-        self.current_action = Action.NONE
-        self.current_picture = None
         self._current_file = None
-        self.clickable_areas = []
 
     def _remember_file(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
@@ -92,27 +122,31 @@ class State:
         The recent files list is updated first, removing invalid entries (deleted directories).
         """
         # Update recent files list.
+        current_file = self.current_file
         self._recent_files = [
             path
             for path in self._recent_files
-            if path.is_dir() and path.resolve() != self.current_file.resolve()
+            if path.is_file() and (current_file is None or path.resolve() != current_file.resolve())
         ]
         return iter(self._recent_files)
 
     def _as_dict(self) -> dict[str, Any]:
         """Used for saving state when closing application."""
-        return {
-            "recent_files": [str(path) for path in self.recent_files],
-            "current_file": str(self.current_file),
-        }
+        d: dict[str, Any] = {"recent_files": [str(path) for path in self.recent_files]}
+        if self.current_file is not None:
+            d["current_file"] = str(self.current_file)
+        return d
 
     @classmethod
     def _from_dict(cls, d: dict[str, Any]) -> "State":
         recent_files = [Path(s) for s in d.get("recent_files", [])]
-        current_file = Path(d.get("current_file", Path.cwd()))
+        current_file = d.get("current_file")
+        if current_file is not None:
+            # noinspection PyTypeChecker
+            current_file = Path(current_file)
         return State(
-            _recent_files=recent_files,
-            _current_file=current_file,
+            recent_files=recent_files,
+            current_file=current_file,
         )
 
     def save(self) -> None:

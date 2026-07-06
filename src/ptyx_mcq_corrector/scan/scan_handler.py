@@ -2,107 +2,108 @@
 This part is responsible for the handling the scan process, so this is the core of the application.
 
 Architecture:
-- The ScannerManager exists in the main thread (the thread of the UI).
-  When a scan is run, the ScannerManager will create a new QThread,
-  and a new ScanWorker instance in this thread.
+- The ScanManager exists in the main thread (the thread of the UI).
+  It owns another thread, the "scan thread", in which all the scan related processes will take place.
+  In this scan thread, a worker (of class `ScanWorker`) will handle the work. It will communicate
+  with the main thread through Qt signals and slots mechanism.
 - The ScanWorker will supervise all the work, waiting from information from the scan process,
-  and giving back this information to the ScannerManager.
+  and giving back this information to the ScanManager.
   Since the ScanWorker is in another thread, it should not have any reference
-  to the main window, any interface widget nor the ScannerManager.
-  It will communicate with the ScannerManager using a slots and signals mechanism.
-- The ScanWorker will create a new process for the scan, since this enables the user
-  to kill the task if needed.
-  Communication with this process will be done through a pipe.
-- The process will send `EndConnection` to end the communication (if not, the worker will hang
-  forever waiting for the next message).
+  to the main window, any interface widget nor the ScanManager.
+  It will only communicate with the ScanManager with this mechanism of slots and signals.
 """
 
-from typing import TYPE_CHECKING
+from functools import wraps
+from pathlib import Path
+from threading import Event
+from typing import TYPE_CHECKING, ParamSpec, TypeVar, Concatenate, Callable
 
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
-from ptyx_mcq_corrector.scan.scan_worker import ProcessInfo, ScanWorker
+from ptyx_mcq.scan import MCQPictureParser
+from ptyx_mcq.scan.data import PageData, AnalyzeResult
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
+    pass
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-class ScannerManager(QObject):
-    """Scanner manager, which communicates with the ScanWorker in the other thread."""
+def action(f: Callable[Concatenate["ScanManager", P], R]) -> Callable[Concatenate["ScanManager", P], R]:
+    @wraps(f)
+    def wrapper(self: "ScanManager", *args: P.args, **kw: P.kwargs):
+        try:
+            if self._is_busy:
+                raise RuntimeError("ScanManager already busy.")
+            self._is_busy = True
+            f(self, *args, **kw)
+        finally:
+            self._is_busy = False
+
+    return wrapper
+
+
+class ScanManager(QObject):
+    """The scan manager, which runs in a dedicated thread."""
 
     # The GUI will connect to those signals to update the interface.
     scan_started = pyqtSignal(name="scan_started")
     scan_ended = pyqtSignal(name="scan_ended")
+    scan_aborted = pyqtSignal(name="scan_aborted")
+    scan_progress = pyqtSignal(str, name="scan_progress")
 
     def __init__(self, main_window: "McqCorrectorMainWindow"):
         super().__init__(None)
         self.main_window = main_window
-        self.current_process_info: ProcessInfo | None = None
-        self.current_thread: QThread | None = None
-        self.worker: ScanWorker | None = None
         self.scan_started.connect(self.main_window.file_events_handler.on_scan_started)
         self.scan_ended.connect(self.main_window.file_events_handler.on_scan_ended)
+        self.scan_aborted.connect(self.main_window.file_events_handler.on_scan_aborted)
+        self._is_busy = False
 
     @property
-    def compilation_is_running(self) -> bool:
-        return self.current_thread is not None
+    def path(self) -> Path | None:
+        return self.main_window.state.current_file
 
-    def launch_scan(self):
-        """Launch a new thread to start the scan process.
+    @property
+    def parser(self) -> MCQPictureParser | None:
+        return self.main_window.state.parser
 
-        In this new thread, a ScanWorker instance will handle the scan
-        and launch a new process.
+    @property
+    def abort_event(self) -> Event:
+        return self.main_window.file_events_handler.abort_event
+
+    @property
+    def is_busy(self) -> bool:
+        return self._is_busy
+
+    def progression(self, info):
+        msg = "Scan in progress..."
+        if isinstance(info, PageData):
+            data = info.identification_data
+            msg = f"Retrieving page {data.page_num} of document #{data.doc_id}."
+        elif isinstance(info, AnalyzeResult):
+            students = [student for student in info.students if student is not None]
+            if students:
+                names = ", ".join(f"{student.name} ({student.id})" for student in students)
+            else:
+                names = "an unkwown student"
+            msg = f"Analyzing the answers of {names}..."
+        self.scan_progress.emit(msg)
+
+    def scan(self):
+        self._scan()
+
+    @action
+    def _scan(self: "ScanManager"):
+        """Launch the scan process.
 
         This is the main entry point of the scan process.
         """
-        current_file = self.main_window.state.current_file
-        if current_file is not None:
-            # Create a new thread to handle the scan process.
-            self.current_thread = thread = QThread(self.main_window)
-            # Create a worker and move it to this new thread.
-            self.worker = worker = ScanWorker(current_file)
-            worker.moveToThread(self.current_thread)
-            # Connect the worker signals to the main thread.
-            worker.process_started.connect(self.on_scan_started)
-            worker.finished.connect(self.on_scan_ended)
-            worker.finished.connect(worker.deleteLater)
-            # The `request` signal is used to pass information from the scan process to the main process
-            # during the scan.
-            worker.request.connect(self.main_window.file_events_handler.on_request)
-            thread.started.connect(lambda: print("Scan thread started..."))
-            thread.started.connect(worker.scan)
-            thread.finished.connect(lambda: print("Scan thread ended."))
-            thread.finished.connect(thread.deleteLater)
-            thread.start()
-            assert self.current_thread is not None
-
-    def on_scan_started(self, process: ProcessInfo):
-        """Actions executing once the scan process starts."""
-        print("ScannerManager.on_scan_started()")
-        assert self.current_process_info is None
-        self.current_process_info = process
-        self.scan_started.emit()
-
-    def on_scan_ended(self):
-        """Actions executing once the scan process ends."""
-        print("ScannerManager.on_scan_ended()")
-        self.worker = None
-        if self.current_thread is not None:
-            self.current_thread.quit()
-            self.current_thread.wait()
-            self.current_thread = None
-        self.current_process_info = None
-        self.scan_ended.emit()
-
-    def abort_scan(self):
-        """Enable the user to abort the scan process."""
-        if self.current_process_info is not None:
-            process = self.current_process_info.process
-            id_ = process.pid
-            process.kill()
-            pipe_other_side = self.current_process_info.pipe_other_side
-            assert pipe_other_side is not None
-            process.join()
-            pipe_other_side.send(None)
-            print(f"Process {id_} interrupted.")
-            self.on_scan_ended()
+        if (parser := self.parser) is not None:
+            self.scan_started.emit()
+            parser.scan_data.run(progression=self.progression, abort_event=self.abort_event)
+            if self.abort_event.is_set():
+                self.scan_aborted.emit()
+            else:
+                self.scan_ended.emit()

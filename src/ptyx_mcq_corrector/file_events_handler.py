@@ -1,20 +1,17 @@
+import threading
 from functools import wraps
 from pathlib import Path
 from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
 from PyQt6.QtCore import QObject
+from PyQt6.QtGui import QIcon, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-from ptyx_mcq_corrector.internal_state import Action
-from ptyx_mcq_corrector.scan.conflict_handlers import (
-    McqRequest,
-    McqAnswersRequest,
-    McqIntegrityRequest,
-    McqNameRequest,
-)
+from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker
+from ptyx_mcq_corrector.internal_state import ScanState
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -73,12 +70,17 @@ class FileEventsHandler(QObject):
         super().__init__(parent=main_window)
         self.main_window: Final = main_window
         self.freeze_update_ui: bool = False  # See update_ui() decorator docstring.
+        self.abort_event = threading.Event()
 
     @update_ui
-    def finalize(self, path: Path = None) -> bool:
+    def finalize(self, path: Path | None = None) -> bool:
         if path is not None:
             self.open_file(path)
         return True
+
+    def abort(self) -> None:
+        """Call this slot to abort the current running action, if possible."""
+        self.abort_event.set()
 
     # ---------------------
     #      Shortcuts
@@ -108,63 +110,68 @@ class FileEventsHandler(QObject):
         if self.state.current_file is None:
             self.main_window.setWindowTitle(param.WINDOW_TITLE)
             self.main_window.header_label.setText("No document")
-        else:
-            name = self.current_file_shortname
-            self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {name}")
-            # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
-            self.main_window.header_label.setText(
-                f"<p style='text-align:center'>Document <i><b><a href='#'>{name}</a></b></i> selected.</p>"
-                "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
-            )
-            try:
-                self.main_window.header_label.linkActivated.disconnect()
-            except TypeError:
-                pass  # no connection existed yet
-            self.main_window.header_label.linkActivated.connect(
-                lambda _: self.main_window.file_events_handler.open_file()
-            )
-            self.main_window.header_label.setOpenExternalLinks(False)
+            self.main_window.disable_navigation()
+            self.main_window.action_button.hide()
+            return
+
+        name = self.current_file_shortname
+        self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {name}")
+        # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
+        self.main_window.header_label.setText(
+            f"<p style='text-align:center'>Document <i><b><a href='#'>{name}</a></b></i> selected.</p>"
+            "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
+        )
+        try:
+            self.main_window.header_label.linkActivated.disconnect()
+        except TypeError:
+            pass  # no connection existed yet
+        self.main_window.header_label.linkActivated.connect(
+            lambda _: self.main_window.file_events_handler.open_file()
+        )
+        self.main_window.header_label.setOpenExternalLinks(False)
+        self.main_window.disable_navigation()
+        action_button = self.main_window.action_button
+        try:
+            action_button.clicked.disconnect()
+        except TypeError:
+            pass  # no connection existed yet
+        self.main_window.actionScan_documents.setEnabled(True)
+
+        if self.state.scan_state == ScanState.TO_DO:
+            action_button.setText("Scan")
+            action_button.setIcon(QIcon.fromTheme("media-playback-start"))
+            action_button.show()
+            action_button.clicked.connect(self.main_window.scan_handler.scan)
+        elif self.state.scan_state == ScanState.IN_PROGRESS:
+            action_button.setText("Abort")
+            action_button.setIcon(QIcon.fromTheme("process-stop"))
+            action_button.clicked.connect(self.abort)
+            self.main_window.actionScan_documents.setEnabled(False)
+        elif self.state.scan_state == ScanState.DONE:
+            action_button.hide()
             self.main_window.enable_navigation()
+            self.display_integrity_issues()
 
-        match self.state.current_action, self.state.current_request:
-            case Action.NONE, _:
-                self.action_none()
-            case Action.WORK_IN_PROGRESS, _:
-                self.action_work_in_progress()
-            case Action.PENDING_REQUEST, McqIntegrityRequest():
-                self.action_integrity_request()
-            case Action.PENDING_REQUEST, McqNameRequest():
-                self.action_name_request()
-            case Action.PENDING_REQUEST, McqAnswersRequest():
-                self.action_answers_request()
-            case Action.DISPLAY_RESULTS, _:
-                self.action_results()
-            case _:
-                raise NotImplementedError
-
-        self.update_status_message()
+        self.update_status_message()  # TODO
 
     # -------------------------------
     #    Functions for each state
     # ===============================
 
-    def action_none(self):
-        self.main_window.disable_navigation()
-
-    def action_work_in_progress(self):
-        self.main_window.header_label.setText("Scan en cours...")
-
-    def action_integrity_request(self):
-        print("Integrity request.")
-
-    def action_name_request(self):
-        pass
-
-    def action_answers_request(self):
-        pass
-
-    def action_results(self):
-        pass
+    # def action_none(self):
+    #     self.main_window.disable_navigation()
+    #
+    # def action_integrity_request(self):
+    #     print("Integrity request.")
+    #
+    # def action_name_request(self):
+    #     pass
+    #
+    # def action_answers_request(self):
+    #     pass
+    #
+    # def action_results(self):
+    #     pass
 
     # --------------------------
     #    Events affecting UI
@@ -172,6 +179,7 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def reset(self) -> bool:
+        """Reset scan data."""
         # Ask for confirmation.
         if (
             QMessageBox.question(
@@ -183,7 +191,9 @@ class FileEventsHandler(QObject):
             )
             == StandardButton.Yes
         ):
+            self.state.scan_state = ScanState.TO_DO
             rmtree(folder := (self.state.current_file.parent / "out"))
+            self.state.parser.scan_data.reset()
             print(f"Folder '{folder}' was removed.")
             return True
         return False
@@ -200,7 +210,7 @@ class FileEventsHandler(QObject):
     @update_ui
     def close_file(self) -> bool:
         """Close current directory."""
-        self.state.close_doc()
+        self.state.close_file()
         return True
 
     @update_ui
@@ -209,22 +219,35 @@ class FileEventsHandler(QObject):
         print(f"Starting scan of '{self.state.current_file}'...")
         return True
 
-    @update_ui
-    def on_request(self, request: McqRequest) -> bool:
-        """Handle requests from the scan process."""
-        assert isinstance(request, McqRequest), f"Invalid request: {request!r}"
-        self.state.current_action = Action.PENDING_REQUEST
-        self.state.current_request = request
-        return True
+    # @update_ui
+    # def on_request(self, request: McqRequest) -> bool:
+    #     """Handle requests from the scan process."""
+    #     assert isinstance(request, McqRequest), f"Invalid request: {request!r}"
+    #     self.state.current_action = Action.PENDING_REQUEST
+    #     self.state.current_request = request
+    #     return True
 
     @update_ui
     def on_scan_started(self) -> bool:
-        self.state.current_action = Action.WORK_IN_PROGRESS
+        self.state.scan_state = ScanState.IN_PROGRESS
+        msg = f"Starting scan of '{self.state.current_file}'..."
+        print(msg)
+        self.main_window.header_label.setText(msg)
         return True
+
+    def on_scan_in_progress(self, msg: str = "Work in progress..."):
+        self.main_window.header_label.setText(msg)
 
     @update_ui
     def on_scan_ended(self) -> bool:
-        self.state.current_action = Action.DISPLAY_RESULTS
+        self.state.scan_state = ScanState.DONE
+        return True
+
+    @update_ui
+    def on_scan_aborted(self) -> bool:
+        self.abort_event.clear()
+        self.state.scan_state = ScanState.TO_DO
+        print("Scan aborted.")
         return True
 
     # -----------------
@@ -245,3 +268,25 @@ class FileEventsHandler(QObject):
         # TODO: implement status message.
         self.main_window.statusbar.setStyleSheet("")
         self.main_window.status_label.setText("")
+
+    def display_integrity_issues(self):
+        parser = self.state.parser
+        assert parser is not None
+        integrity_check_results = IntegrityChecker(parser.scan_data).run()
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Document", "Pages"])
+        root = model.invisibleRootItem()  # top of the tree
+        categories = {
+            "Duplicates": integrity_check_results.duplicates,
+            "Missing": integrity_check_results.missing_pages,
+        }
+        for title, results in categories.items():
+            folder = QStandardItem(title)
+            for doc_id, pages in results.items():
+                pages_str = ", ".join(str(page) for page in pages)
+                folder.appendRow([QStandardItem(f"Document {doc_id}"), QStandardItem(f"Pages {pages_str}")])
+            root.appendRow(folder)
+        tree = self.main_window.issuesView
+        tree.setModel(model)
+        tree.expandAll()
+        tree.show()

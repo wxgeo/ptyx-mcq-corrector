@@ -14,6 +14,9 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
@@ -64,6 +67,13 @@
        </spacer>
       </item>
       <item>
+       <widget class="QPushButton" name="action_button">
+        <property name="text">
+         <string>Scan</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="next_button">
         <property name="text">
          <string>Next</string>
@@ -82,7 +92,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1097</width>
+         <width>817</width>
          <height>426</height>
         </rect>
        </property>
@@ -113,7 +123,15 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="menu_Recent_files">
+     <property name="title">
+      <string>Recent files</string>
+     </property>
+     <addaction name="actionEMPTY"/>
+    </widget>
     <addaction name="action_Open_directory"/>
+    <addaction name="menu_Recent_files"/>
+    <addaction name="action_Close"/>
     <addaction name="action_Quit"/>
    </widget>
    <widget class="QMenu" name="menu_Scan">
@@ -135,7 +153,26 @@
    <addaction name="menu_About"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="issuesDock">
+   <property name="windowTitle">
+    <string>Found issues</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QTreeView" name="issuesView"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
   <action name="action_Open_directory">
+   <property name="icon">
+    <iconset theme="document-open">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>&amp;Select configuration file</string>
    </property>
@@ -144,6 +181,10 @@
    </property>
   </action>
   <action name="action_Quit">
+   <property name="icon">
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>&amp;Quit</string>
    </property>
@@ -176,6 +217,20 @@
   <action name="action_Fix_configuration_file">
    <property name="text">
     <string>&amp;Fix configuration file</string>
+   </property>
+  </action>
+  <action name="action_Close">
+   <property name="icon">
+    <iconset theme="window-close">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="actionEMPTY">
+   <property name="text">
+    <string>EMPTY</string>
    </property>
   </action>
  </widget>
