@@ -43,7 +43,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 817, 426))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 817, 429))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -55,7 +55,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.scrollArea)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1117, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1117, 22))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(parent=self.menubar)
         self.menu_File.setObjectName("menu_File")
@@ -75,7 +75,7 @@ class Ui_MainWindow(object):
         self.dockWidgetContents.setObjectName("dockWidgetContents")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.dockWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.issuesView = QtWidgets.QTreeView(parent=self.dockWidgetContents)
+        self.issuesView = IssuesViewer(parent=self.dockWidgetContents)
         self.issuesView.setObjectName("issuesView")
         self.verticalLayout_3.addWidget(self.issuesView)
         self.issuesDock.setWidget(self.dockWidgetContents)
@@ -144,6 +144,7 @@ class Ui_MainWindow(object):
         self.action_Fix_configuration_file.setText(_translate("MainWindow", "&Fix configuration file"))
         self.action_Close.setText(_translate("MainWindow", "&Close"))
         self.actionEMPTY.setText(_translate("MainWindow", "EMPTY"))
+from ptyx_mcq_corrector.fix.issues_viewer import IssuesViewer
 
 
 if __name__ == "__main__":

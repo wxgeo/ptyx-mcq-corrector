@@ -1,16 +1,51 @@
 from enum import StrEnum
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 from ptyx_mcq_corrector.internal_state import State
 
 
+FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
+
+
 class IssuesTypes(StrEnum):
-    NAMES = "Names"
+    NAMES = "Names issues"
     AMBIGUOUS_ANSWERS = "Ambiguous answers"
     MISSING_PAGES = "Missing pages"
     DUPLICATES = "Duplicates"
+
+
+def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
+    """
+    Add a header to the model.
+
+    A header is non-selectable.
+    """
+    header = QStandardItem(title)
+    header.setFlags(header.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+    parent.appendRow(header)
+    return header
+
+
+def _add_category(root: QStandardItem, issues_type: IssuesTypes, results: FoundIssues) -> None:
+    """
+    Add the issues of the same type to the model.
+    """
+    category = _add_header(root, str(issues_type))
+    if isinstance(results, dict):
+        for doc_id, pages in results.items():
+            doc = _add_header(category, f"Document {doc_id}")
+            for page in pages:
+                doc.appendRow(item := QStandardItem(f"Pages {page}"))
+                item.setData({"type": issues_type, "doc": doc_id, "page": page})
+    else:
+        assert isinstance(results, list)
+        for doc_id in results:
+            category.appendRow(item := QStandardItem(f"Document {doc_id}"))
+            item.setData({"type": IssuesTypes.NAMES, "doc": doc_id})
+    assert root is not None
 
 
 class IssuesModel:
@@ -20,56 +55,44 @@ class IssuesModel:
         self.current_doc: DocumentId | None = None
         self.current_page: PageNum | None = None
 
-    def update(self) -> None:
+    def update(self) -> bool:
+        """
+        Update the state of the model.
+
+        Return `True` if any issues were found, `False` otherwise.
+        """
         if self.state.integrity_issues_detected:
-            self._set_integrity_issues_model()
+            issues = self.state.integrity_issues
+            assert issues is not None
+            categories = {
+                IssuesTypes.DUPLICATES: issues.duplicates,
+                IssuesTypes.MISSING_PAGES: issues.missing_pages,
+            }
+            return self._fill_model("Integrity issues", categories)
         elif self.state.data_issues_detected:
-            self._set_data_issues_model()
+            issues = self.state.data_issues
+            assert issues is not None
+            categories = {
+                IssuesTypes.DUPLICATES: issues.names_to_review,
+                IssuesTypes.MISSING_PAGES: issues.ambiguous_answers_by_doc,
+            }
+            return self._fill_model("Data issues", categories)
+        return False
 
-    def _add_folder(
-        self, root: QStandardItem, issues_type: IssuesTypes, results: dict[DocumentId, list[PageNum]]
-    ) -> None:
-        folder = QStandardItem(str(issues_type))
-        for doc_id, pages in results.items():
-            doc = QStandardItem(f"Document {doc_id}")
-            folder.appendRow(doc)
-            for page in pages:
-                doc.appendRow(item := QStandardItem(f"Pages {page}"))
-                item.setData({"type": issues_type, "doc": doc_id, "page": page})
-        assert root is not None
-        root.appendRow(folder)
+    def _fill_model(
+        self,
+        title: str,
+        categories: dict[IssuesTypes, FoundIssues],
+    ):
+        """
+        Fill the model with detected issues.
 
-    def _prepare_model(self, title: str, results: object) -> QStandardItem | None:
-        if results is None:
-            return None
+        Return `True` if any issues were found, `False` otherwise.
+        """
         (model := self.tree_model).clear()
         model.setHorizontalHeaderLabels([title])
-        return model.invisibleRootItem()  # top of the tree
-
-    def _set_integrity_issues_model(self) -> None:
-        integrity_check_results = self.state.integrity_issues
-        root = self._prepare_model("Integrity issues", integrity_check_results)
-        if root is None:
-            return
-        assert integrity_check_results is not None
-        categories = {
-            IssuesTypes.DUPLICATES: integrity_check_results.duplicates,
-            IssuesTypes.MISSING_PAGES: integrity_check_results.missing_pages,
-        }
+        root = model.invisibleRootItem()  # top of the tree
         for issues_type, results in categories.items():
             assert root is not None
-            self._add_folder(root, issues_type, results)
-
-    def _set_data_issues_model(self):
-        data_issues = self.state.data_issues
-        root = self._prepare_model("Integrity issues", data_issues)
-        if root is None:
-            return
-        assert data_issues is not None
-        folder = QStandardItem("Names issues")
-        for doc_id in data_issues.names_to_review:
-            folder.appendRow(item := QStandardItem(f"Document {doc_id}"))
-            item.setData({"type": IssuesTypes.NAMES, "doc": doc_id})
-        root.appendRow(folder)
-
-        self._add_folder(root, IssuesTypes.AMBIGUOUS_ANSWERS, data_issues.ambiguous_answers_by_doc)
+            _add_category(root, issues_type, results)
+        return True

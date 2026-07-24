@@ -5,12 +5,11 @@ from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtGui import QIcon, QStandardItemModel, QStandardItem
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq_corrector.internal_state import ScanState
 
 if TYPE_CHECKING:
@@ -152,7 +151,7 @@ class FileEventsHandler(QObject):
             action_button.hide()
             self.main_window.enable_navigation()
             self.main_window.issuesDock.show()
-            self.display_issues()
+            self.main_window.issues_controller.display_issues()
 
         self.update_status_message()  # TODO
 
@@ -270,60 +269,3 @@ class FileEventsHandler(QObject):
         # TODO: implement status message.
         self.main_window.statusbar.setStyleSheet("")
         self.main_window.status_label.setText("")
-
-    def display_issues(self):
-        parser = self.state.parser
-        assert parser is not None
-        if self.state.integrity_issues_detected:
-            self.display_integrity_issues()
-            return
-        if self.state.data_issues_detected:
-            self.display_data_issues()
-
-    def display_integrity_issues(self):
-        parser = self.state.parser
-        assert parser is not None
-        integrity_check_results = IntegrityChecker(parser.scan_data).run()
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Integrity issues"])
-        root = model.invisibleRootItem()  # top of the tree
-        categories = {
-            "Duplicates": integrity_check_results.duplicates,
-            "Missing": integrity_check_results.missing_pages,
-        }
-        for title, results in categories.items():
-            folder = QStandardItem(title)
-            for doc_id, pages in results.items():
-                doc = QStandardItem(f"Document {doc_id}")
-                folder.appendRow(doc)
-                for page in pages:
-                    doc.appendRow(QStandardItem(f"Pages {page}"))
-            assert root is not None
-            root.appendRow(folder)
-        tree = self.main_window.issuesView
-        tree.setModel(model)
-        tree.expandAll()
-        tree.show()
-
-    def display_data_issues(self):
-        parser = self.state.parser
-        assert parser is not None
-        data_check_results = DataChecker(parser.scan_data).run()
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Data issues"])
-        root = model.invisibleRootItem()  # top of the tree
-        folder = QStandardItem("Names issues")
-        for doc_id in data_check_results.names_to_review:
-            folder.appendRow(QStandardItem(f"Document {doc_id}"))
-
-        folder = QStandardItem("Ambiguous answers")
-        for doc_id, pages in data_check_results.ambiguous_answers_by_doc.items():
-            folder.appendRow(doc := QStandardItem(f"Document {doc_id}"))
-            for page in pages:
-                doc.appendRow(QStandardItem(f"Page {page}"))
-        assert root is not None
-        root.appendRow(folder)
-        tree = self.main_window.issuesView
-        tree.setModel(model)
-        tree.expandAll()
-        tree.show()
