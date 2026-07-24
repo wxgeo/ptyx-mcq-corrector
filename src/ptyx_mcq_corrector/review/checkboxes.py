@@ -61,7 +61,7 @@ class Checkbox:
 # --------------------------------------------------------------------------
 
 
-class MCQViewer(QWidget):
+class CheckboxesReviewer(QWidget):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
     checkboxToggled = pyqtSignal(Checkbox, bool)  # (checkbox, new_checked_state)

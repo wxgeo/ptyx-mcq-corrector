@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
-from ptyx_mcq_corrector.fix.issues_controler import IssuesController
+from ptyx_mcq_corrector.issues.issues_controler import IssuesController
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
@@ -39,7 +39,8 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_thread = QThread(self)
         self.scan_handler.moveToThread(self.scan_thread)
 
-        self.issues_controller = IssuesController(self.state, self.issuesView)
+        self.issues_controller = IssuesController(self)
+        self.issues_controller.issue_selected.connect(self.file_events_handler.on_issue_selected)
 
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
         # print("created temporary directory", self.tmp_dir)

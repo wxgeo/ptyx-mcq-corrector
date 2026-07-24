@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
+from ptyx_mcq_corrector.issues.issues_model import IssuesTypes, IssueInfo
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -152,6 +153,12 @@ class FileEventsHandler(QObject):
             self.main_window.enable_navigation()
             self.main_window.issuesDock.show()
             self.main_window.issues_controller.display_issues()
+            if (issue := self.state.current_issue) is not None:
+                # self.main_window.issues_controller.view.setCurrentIndex(issue.index)
+                if issue.type == IssuesTypes.AMBIGUOUS_ANSWERS:
+                    page = self.state.parser.scan_data.used_docs_index[issue.doc].pages_index[issue.page]
+                    self.main_window.checkboxes.page = page
+                    self.main_window.main_area.setCurrentIndex(1)
 
         self.update_status_message()  # TODO
 
@@ -177,6 +184,11 @@ class FileEventsHandler(QObject):
     # --------------------------
     #    Events affecting UI
     # ==========================
+
+    @update_ui
+    def on_issue_selected(self, issue: IssueInfo) -> bool:
+        self.state.current_issue = issue
+        return True
 
     @update_ui
     def reset(self) -> bool:

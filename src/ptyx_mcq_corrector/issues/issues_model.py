@@ -1,13 +1,25 @@
-from enum import StrEnum
+from dataclasses import dataclass
+from enum import StrEnum, Enum
+from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
-from ptyx_mcq_corrector.internal_state import State
+
+
+if TYPE_CHECKING:
+    from ptyx_mcq_corrector.internal_state import State
 
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
+
+STATE_ROLE = Qt.ItemDataRole.UserRole + 2
+
+
+class IssueState(Enum):
+    PENDING = "pending"
+    FIXED = "fixed"
 
 
 class IssuesTypes(StrEnum):
@@ -15,6 +27,14 @@ class IssuesTypes(StrEnum):
     AMBIGUOUS_ANSWERS = "Ambiguous answers"
     MISSING_PAGES = "Missing pages"
     DUPLICATES = "Duplicates"
+
+
+@dataclass
+class IssueInfo:
+    index: QModelIndex
+    type: IssuesTypes
+    doc: DocumentId
+    page: PageNum | None
 
 
 def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
@@ -29,6 +49,16 @@ def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
     return header
 
 
+def _add_item(
+    parent: QStandardItem, title: str, issue_type: IssuesTypes, doc_id: DocumentId, page: PageNum | None
+) -> QStandardItem:
+    parent.appendRow(item := QStandardItem(title))
+    item.setData(IssueInfo(index=item.index(), type=issue_type, doc=doc_id, page=page))
+    # IssueState is used to apply the appropriate style.
+    item.setData(IssueState.PENDING, STATE_ROLE)
+    return item
+
+
 def _add_category(root: QStandardItem, issues_type: IssuesTypes, results: FoundIssues) -> None:
     """
     Add the issues of the same type to the model.
@@ -38,18 +68,16 @@ def _add_category(root: QStandardItem, issues_type: IssuesTypes, results: FoundI
         for doc_id, pages in results.items():
             doc = _add_header(category, f"Document {doc_id}")
             for page in pages:
-                doc.appendRow(item := QStandardItem(f"Pages {page}"))
-                item.setData({"type": issues_type, "doc": doc_id, "page": page})
+                _add_item(doc, f"Page {page}", issues_type, doc_id, page)
     else:
         assert isinstance(results, list)
         for doc_id in results:
-            category.appendRow(item := QStandardItem(f"Document {doc_id}"))
-            item.setData({"type": IssuesTypes.NAMES, "doc": doc_id})
+            _add_item(category, f"Document {doc_id}", issues_type, doc_id, None)
     assert root is not None
 
 
 class IssuesModel:
-    def __init__(self, state: State):
+    def __init__(self, state: "State"):
         self.state = state
         self.tree_model: QStandardItemModel = QStandardItemModel()
         self.current_doc: DocumentId | None = None

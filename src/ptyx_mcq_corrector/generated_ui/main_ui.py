@@ -47,9 +47,14 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.main_area = QtWidgets.QLabel(parent=self.scrollAreaWidgetContents)
-        self.main_area.setText("")
+        self.main_area = QtWidgets.QStackedWidget(parent=self.scrollAreaWidgetContents)
         self.main_area.setObjectName("main_area")
+        self.blank = QtWidgets.QWidget()
+        self.blank.setObjectName("blank")
+        self.main_area.addWidget(self.blank)
+        self.checkboxes = CheckboxesReviewer()
+        self.checkboxes.setObjectName("checkboxes")
+        self.main_area.addWidget(self.checkboxes)
         self.verticalLayout_2.addWidget(self.main_area)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout.addWidget(self.scrollArea)
@@ -118,6 +123,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_About.menuAction())
 
         self.retranslateUi(MainWindow)
+        self.main_area.setCurrentIndex(1)
         self.action_Quit.triggered.connect(MainWindow.close) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -144,7 +150,8 @@ class Ui_MainWindow(object):
         self.action_Fix_configuration_file.setText(_translate("MainWindow", "&Fix configuration file"))
         self.action_Close.setText(_translate("MainWindow", "&Close"))
         self.actionEMPTY.setText(_translate("MainWindow", "EMPTY"))
-from ptyx_mcq_corrector.fix.issues_viewer import IssuesViewer
+from ptyx_mcq_corrector.issues.issues_viewer import IssuesViewer
+from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
 
 
 if __name__ == "__main__":

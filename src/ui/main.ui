@@ -98,10 +98,12 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QLabel" name="main_area">
-          <property name="text">
-           <string/>
+         <widget class="QStackedWidget" name="main_area">
+          <property name="currentIndex">
+           <number>1</number>
           </property>
+          <widget class="QWidget" name="blank"/>
+          <widget class="CheckboxesReviewer" name="checkboxes"/>
          </widget>
         </item>
        </layout>
@@ -238,7 +240,13 @@
   <customwidget>
    <class>IssuesViewer</class>
    <extends>QTreeView</extends>
-   <header>ptyx_mcq_corrector.fix.issues_viewer</header>
+   <header>ptyx_mcq_corrector.issues.issues_viewer</header>
+  </customwidget>
+  <customwidget>
+   <class>CheckboxesReviewer</class>
+   <extends>QWidget</extends>
+   <header>ptyx_mcq_corrector.review.checkboxes</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

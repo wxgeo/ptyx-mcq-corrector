@@ -10,6 +10,7 @@ from ptyx_mcq.scan import MCQPictureParser
 from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
+from ptyx_mcq_corrector.issues.issues_model import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
@@ -40,6 +41,7 @@ class State:
         self._current_file: Path | None = current_file
         self._cache: Cache = Cache()
         self.scan_state: ScanState = ScanState.TO_DO
+        self.current_issue: IssueInfo | None = None
 
     @property
     def parser(self) -> MCQPictureParser | None:
