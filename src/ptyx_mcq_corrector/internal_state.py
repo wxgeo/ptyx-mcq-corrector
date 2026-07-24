@@ -1,35 +1,28 @@
 import tomllib
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, TypedDict
 
 from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq.scan import MCQPictureParser
 from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
+from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
+from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
-
-
-# class Action(Enum):
-#     NONE = auto()
-#     WORK_IN_PROGRESS = auto()
-#     PENDING_REQUEST = auto()
-#     DISPLAY_RESULTS = auto()
-
-
-# class Step(Enum):
-#     NO_FILE = auto()
-#     FILE_SELECTED = auto()
-#     SCAN_IN_PROGRESS = auto()
-#     SCAN_FINISHED = auto()
-#     ISSUES_FIXED = auto()
 
 
 class ScanState(Enum):
     TO_DO = auto()
     IN_PROGRESS = auto()
     DONE = auto()
+
+
+class Cache(TypedDict, total=False):
+    parser: MCQPictureParser
+    integrity_check: IntegrityCheckResult
+    data_check: DataCheckResult
 
 
 class InvalidFileError(OSError):
@@ -45,42 +38,49 @@ class State:
     def __init__(self, recent_files: list[Path] | None = None, current_file: Path | None = None):
         self._recent_files: list[Path] = recent_files or []
         self._current_file: Path | None = current_file
-        self._parser: MCQPictureParser | None = None
+        self._cache: Cache = Cache()
         self.scan_state: ScanState = ScanState.TO_DO
-
-    # @property
-    # def step(self) -> Step:
-    #     if self.current_file is None:
-    #         return Step.NO_FILE
-    #     if self._scan_state = UNDONE
 
     @property
     def parser(self) -> MCQPictureParser | None:
-        current_file = self._current_file
-        if current_file is None:
-            self._parser = None
-        elif (
-            self._parser is None
-            or self._parser.scan_data.paths.configfile.resolve() != current_file.resolve()
-        ):
-            # Update the parser.
-            self._parser = MCQPictureParser(current_file)
-        return self._parser
+        if (current_file := self._current_file) is None:
+            return None
+        try:
+            return self._cache["parser"]
+        except KeyError:  # Update the parser.
+            return self._cache.setdefault("parser", MCQPictureParser(current_file))
 
     @property
-    def has_integrity_issues(self) -> bool | None:
-        if (parser := self.parser) is None:
+    def integrity_issues(self) -> None | IntegrityCheckResult:
+        if self.scan_state != ScanState.DONE or (parser := self.parser) is None:
             return None
-        integrity_check_results = IntegrityChecker(parser.scan_data).run()
-        return len(integrity_check_results.duplicates) + len(integrity_check_results.missing_pages) > 0
+        try:
+            return self._cache["integrity_check"]
+        except KeyError:
+            # Don't call IntegrityChecker(parser.scan_data).run() if the key exist
+            return self._cache.setdefault("integrity_check", IntegrityChecker(parser.scan_data).run())
 
     @property
-    def has_data_issues(self) -> bool | None:
-        if (parser := self.parser) is None:
+    def data_issues(self) -> None | DataCheckResult:
+        if self.scan_state != ScanState.DONE or (parser := self.parser) is None:
             return None
-        # TODO: is it safe to run it if integrity issues remain?
-        data_check_results = DataChecker(parser.scan_data).run()
-        return len(data_check_results.names_to_review) + len(data_check_results.ambiguous_answers) > 0
+        if self.integrity_issues is None or not self.integrity_issues.is_ok:
+            return None
+        try:
+            return self._cache["data_check"]
+        except KeyError:
+            # Don't call IntegrityChecker(parser.scan_data).run() if the key exist
+            return self._cache.setdefault("data_check", DataChecker(parser.scan_data).run())
+
+    @property
+    def integrity_issues_detected(self) -> bool:
+        integrity_issues = self.integrity_issues
+        return integrity_issues is not None and not integrity_issues.is_ok
+
+    @property
+    def data_issues_detected(self) -> bool:
+        data_issues = self.data_issues
+        return data_issues is not None and not data_issues.is_ok
 
     @property
     def default_dir(self) -> Path:
@@ -122,6 +122,9 @@ class State:
             self._remember_file(self._current_file)
         # Reset state, except for recent directories list.
         self._current_file = None
+        # Clear the cache, since the parser is now invalid.
+        # noinspection PyTypedDict
+        self._cache.clear()  # type: ignore
 
     def _remember_file(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.

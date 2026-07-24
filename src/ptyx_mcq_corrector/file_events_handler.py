@@ -106,6 +106,7 @@ class FileEventsHandler(QObject):
         """Update window and tab titles according to state data.
 
         Assure synchronization between ui and state."""
+        self.main_window.issuesDock.hide()
 
         if self.state.current_file is None:
             self.main_window.setWindowTitle(param.WINDOW_TITLE)
@@ -136,7 +137,6 @@ class FileEventsHandler(QObject):
         except TypeError:
             pass  # no connection existed yet
         self.main_window.actionScan_documents.setEnabled(True)
-        self.main_window.issuesDock.hide()
 
         if self.state.scan_state == ScanState.TO_DO:
             action_button.setText("Scan")
@@ -274,10 +274,10 @@ class FileEventsHandler(QObject):
     def display_issues(self):
         parser = self.state.parser
         assert parser is not None
-        if self.state.has_integrity_issues:
+        if self.state.integrity_issues_detected:
             self.display_integrity_issues()
             return
-        if self.state.has_data_issues:
+        if self.state.data_issues_detected:
             self.display_data_issues()
 
     def display_integrity_issues(self):

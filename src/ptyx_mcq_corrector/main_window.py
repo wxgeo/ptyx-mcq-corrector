@@ -8,11 +8,12 @@ from PyQt6.QtCore import QThread
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 
+from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
 from ptyx_mcq_corrector.param import ICON_PATH
-from ptyx_mcq_corrector.scan.scan_handler import ScanManager
+from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
 
 def path_hash(path: Path | str) -> str:
@@ -73,6 +74,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self.update_recent_files_menu)
+        self.action_About.triggered.connect(self.about)
         # self.actionN_ew_Session.triggered.connect(lambda: handler.new_session())
         # self.menuFichier.aboutToShow.connect(self.update_recent_files_menu)
         #
@@ -180,3 +182,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     #         if doc_path is None:
     #             doc_path = Path(f"new-doc-{doc.doc_id}")
     #     return self.tmp_dir / f"{'' if doc_path is None else doc_path.stem}-{path_hash(doc_path)}.{suffix}"
+
+    def about(self) -> None:
+        AboutDialog(self).exec()
