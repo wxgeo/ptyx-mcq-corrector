@@ -1,11 +1,17 @@
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QStandardItemModel
-from PyQt6.QtWidgets import QTreeView, QWidget, QAbstractItemView, QStyleOptionViewItem
+from PyQt6.QtWidgets import QTreeView, QAbstractItemView, QStyleOptionViewItem, QWidget
 from PyQt6.QtCore import Qt, QModelIndex, QSize
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
-from ptyx_mcq_corrector.issues.issues_model import IssueState, STATE_ROLE
+from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
+from ptyx_mcq_corrector.issues.issues_model import IssueState, STATE_ROLE, IssueInfo, IssuesTypes, IssuesModel
+
+if TYPE_CHECKING:
+    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
 
 class IssueColor:
@@ -47,13 +53,27 @@ class IssueStateDelegate(QStyledItemDelegate):
             option.decorationSize = QSize(16, 16)
 
 
-class IssuesViewer(QTreeView):
-    def __init__(self, parent: QWidget):
+class IssuesViewer(QTreeView, EnhancedWidget):
+    def __init__(self, parent: QWidget | None):
         super().__init__(parent)
+        print(type(self.window()))
+        self._model: IssuesModel | None = None
 
-    def display_model(self, model: QStandardItemModel) -> None:
-        self.expandAll()
-        self.show()
+    def setModel(self, model: IssuesModel) -> None:
+        super().setModel(model)
+        self._model = model
+
+    def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
+        super().currentChanged(current, previous)
+        model = self._model
+        if model is not None:
+            item = model.itemFromIndex(current)
+            if item is not None:
+                issue = item.data()
+                if issue is not None:
+                    self.sync_issue_reviewer(issue=issue)
+
+        # self.issue_selected.emit(item.data())
 
     def moveCursor(self, cursor_action, modifiers):
         index = super().moveCursor(cursor_action, modifiers)
@@ -66,10 +86,24 @@ class IssuesViewer(QTreeView):
                 next_index = self.indexAbove(index)
             else:
                 break  # don't try to handle Left/Right/Home/End here
-
             if not next_index.isValid():
                 break  # reached top/bottom of tree, stop to avoid infinite loop
-
             index = next_index
-
         return index
+
+    def display_issues(self):
+        model = self._model
+        if model is not None:
+            model.update()
+            self.setItemDelegate(IssueStateDelegate(self))
+            self.expandAll()
+            self.show()
+
+    def sync_issue_reviewer(self, issue: IssueInfo) -> None:
+        print("Selected:", issue)
+        doc = self._model.state.parser.scan_data.used_docs_index[issue.doc]
+        if issue.type == IssuesTypes.AMBIGUOUS_ANSWERS:
+            print("Cas 1")
+            page = doc.pages_index[issue.page]
+            self.main_window.checkboxes.page = page
+            self.main_window.main_area.setCurrentIndex(1)
