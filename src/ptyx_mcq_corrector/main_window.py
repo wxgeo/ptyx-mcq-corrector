@@ -83,6 +83,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
         self.actionNext.triggered.connect(self.issuesView.move_to_next_index)
         self.actionPrevious.triggered.connect(self.issuesView.move_to_previous_index)
+        self.actionValidate.triggered.connect(lambda: self.file_events_handler.validate_issue())
 
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)

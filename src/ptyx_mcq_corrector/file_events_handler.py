@@ -91,6 +91,16 @@ class FileEventsHandler(QObject):
     def scan(self) -> None:
         self.main_window.scan_request.emit()
 
+    @update_ui
+    def validate_issue(self) -> bool:
+        if (issue := self.state.current_issue) is None:
+            return False
+        if (model := self.main_window.issuesView.model()) is None:
+            return False
+        model.validate(issue.index)
+        self.main_window.issuesView.move_to_next_index()
+        return True
+
     # ---------------------
     #      Shortcuts
     # =====================

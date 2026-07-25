@@ -124,3 +124,10 @@ class IssuesModel(QStandardItemModel):
             assert root is not None
             _add_category(root, issues_type, results)
         return True
+
+    def validate(self, index: QModelIndex) -> None:
+        if index.flags() & Qt.ItemFlag.ItemIsSelectable:
+            item = self.itemFromIndex(index)
+            if item is not None:
+                item.setData(IssueState.FIXED, STATE_ROLE)
+                # TODO: save answers states.
