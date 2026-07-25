@@ -106,13 +106,12 @@ class FileEventsHandler(QObject):
         """Update window and tab titles according to state data.
 
         Assure synchronization between ui and state."""
-        self.main_window.issuesDock.hide()
         self.main_window.main_area.setCurrentIndex(0)
+        self.main_window.disable_review_ui()
 
         if self.state.current_file is None:
             self.main_window.setWindowTitle(param.WINDOW_TITLE)
             self.main_window.header_label.setText("No document")
-            self.main_window.disable_navigation()
             self.main_window.action_button.hide()
             return
 
@@ -131,7 +130,6 @@ class FileEventsHandler(QObject):
             lambda _: self.main_window.file_events_handler.open_file()
         )
         self.main_window.header_label.setOpenExternalLinks(False)
-        self.main_window.disable_navigation()
         action_button = self.main_window.action_button
         try:
             action_button.clicked.disconnect()
@@ -150,10 +148,7 @@ class FileEventsHandler(QObject):
             action_button.clicked.connect(self.abort)
             self.main_window.actionScan_documents.setEnabled(False)
         elif self.state.scan_state == ScanState.DONE:
-            action_button.hide()
-            self.main_window.enable_navigation()
-            self.main_window.issuesDock.show()
-            self.main_window.issuesView.display_issues()
+            self.main_window.enable_review_ui()
 
         self.update_status_message()  # TODO
 

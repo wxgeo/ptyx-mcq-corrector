@@ -130,13 +130,21 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
 
-    def disable_navigation(self):
+    def disable_review_ui(self):
         self.previous_button.hide()
         self.next_button.hide()
+        self.menuReview.setEnabled(False)
+        self.issuesDock.hide()
 
-    def enable_navigation(self):
+    def enable_review_ui(self):
         self.previous_button.show()
         self.next_button.show()
+        self.menuReview.setEnabled(True)
+        self.action_button.setText("Validate")
+        for button in [self.previous_button, self.next_button, self.action_button]:
+            button.setEnabled(self.state.current_issue is not None)
+        self.issuesDock.show()
+        self.issuesView.display_issues()
 
     def request_to_close(self) -> bool:
         """Save state and return a boolean indicating if closing is accepted.

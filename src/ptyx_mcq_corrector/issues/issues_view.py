@@ -108,3 +108,4 @@ class IssuesViewer(QTreeView, EnhancedWidget):
                 page = doc.pages_index[issue.page]
                 self.main_window.checkboxes.page = page
                 self.main_window.main_area.setCurrentIndex(1)
+                self.main_window.action_button.setEnabled(True)
