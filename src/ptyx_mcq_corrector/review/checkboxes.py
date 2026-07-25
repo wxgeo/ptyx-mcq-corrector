@@ -69,6 +69,24 @@ class Transformation:
     shift: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
 
 
+@dataclass
+class Drag:
+    parent: CheckboxesReviewer
+    is_started: bool = False
+    start_pos: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
+    original_shift: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
+
+    def start(self, start_pos: QPoint, original_shift: QPoint) -> None:
+        self.is_started = True
+        self.start_pos = start_pos
+        self.original_shift = original_shift
+        self.parent.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def end(self) -> None:
+        self.is_started = False
+        self.parent.setCursor(Qt.CursorShape.ArrowCursor)
+
+
 # --------------------------------------------------------------------------
 # The main widget
 # --------------------------------------------------------------------------
@@ -92,6 +110,7 @@ class CheckboxesReviewer(QWidget):
     # The global transformation, resulting of both the base transformation automatically calculated for the pixmap
     # to fit the window, and the user defined transformation.
     _transform: Transformation
+    _drag: Drag
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -105,6 +124,7 @@ class CheckboxesReviewer(QWidget):
         self._page = None
         self._transform = Transformation()
         self._user_transform = Transformation()
+        self._drag = Drag(self)
 
     def reset_zoom(self) -> None:
         self._user_transform = Transformation()
@@ -231,19 +251,33 @@ class CheckboxesReviewer(QWidget):
                 painter.drawRect(wrect)
 
     def mousePressEvent(self, event):
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
-        img_pt = self._widget_to_image(event.pos())
-        if img_pt is None:
-            return
-        for cb in self.checkboxes:
-            if img_pt in cb:
-                cb.toggle()
-                self.checkboxToggled.emit(cb, cb.is_checked)
-                self.update()
-                break
+        if (
+            event.button() == Qt.MouseButton.RightButton
+        ):  # right-click drag to pan, left stays for toggling checkboxes
+            self._drag.start(start_pos=event.pos(), original_shift=self._user_transform.shift)
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+        elif event.button() == Qt.MouseButton.LeftButton:
+            img_pt = self._widget_to_image(event.pos())
+            if img_pt is None:
+                return
+            for cb in self.checkboxes:
+                if img_pt in cb:
+                    cb.toggle()
+                    self.checkboxToggled.emit(cb, cb.is_checked)
+                    self.update()
+                    break
+
+    def mouseReleaseEvent(self, event):
+        self._drag.end()
 
     def mouseMoveEvent(self, event):
+        if self._drag.is_started:
+            delta = event.pos() - self._drag.start_pos
+            self._user_transform.shift = self._drag.original_shift + delta
+            self._recompute_transform()
+            self.update()
+            return
         img_pt = self._widget_to_image(event.pos())
         new_hover = None
         if img_pt is not None:
