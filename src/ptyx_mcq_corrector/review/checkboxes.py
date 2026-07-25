@@ -18,6 +18,7 @@ widget so you can click boxes to toggle them).
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Optional, Iterator
 
 from PIL.ImageQt import ImageQt
@@ -62,6 +63,12 @@ class Checkbox:
         self.answer.toggle_state()
 
 
+@dataclass
+class Transformation:
+    zoom: float = 1.0
+    shift: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
+
+
 # --------------------------------------------------------------------------
 # The main widget
 # --------------------------------------------------------------------------
@@ -80,11 +87,11 @@ class CheckboxesReviewer(QWidget):
     _cached_pixmap: QPixmap | None
     _hover: Checkbox | None
     _page: Page | None
-    _fit_scale: float
-    _zoom: float
-    _scale: float
-    _offset: QPoint
-    _pan_offset: QPoint
+    # The transformation applied by the user, using the mouse wheel and right-button dragging.
+    _user_transform: Transformation
+    # The global transformation, resulting of both the base transformation automatically calculated for the pixmap
+    # to fit the window, and the user defined transformation.
+    _transform: Transformation
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -96,15 +103,11 @@ class CheckboxesReviewer(QWidget):
         self._cached_pixmap = None
         self._hover = None
         self._page = None
-        self._fit_scale = 1.0  # scale to fit widget (computed)
-        self._zoom = 1.0  # user zoom multiplier (1.0 = fit)
-        self._scale = 1.0  # effective scale = _fit_scale * _zoom
-        self._offset = QPoint(0, 0)
-        self._pan_offset = QPoint(0, 0)  # extra offset from user panning
+        self._transform = Transformation()
+        self._user_transform = Transformation()
 
     def reset_zoom(self) -> None:
-        self._zoom = 1.0
-        self._pan_offset = QPoint(0, 0)
+        self._user_transform = Transformation()
         self._recompute_transform()
         self.update()
 
@@ -133,8 +136,9 @@ class CheckboxesReviewer(QWidget):
 
     @page.setter
     def page(self, page: Page) -> None:
+        self.reset()
         self._page = page
-        self._cached_pixmap = None
+        self._recompute_transform()
         self.update()
 
     @property
@@ -149,37 +153,42 @@ class CheckboxesReviewer(QWidget):
         if (pixmap := self.pixmap) is None:
             return
         pw, ph = pixmap.width(), pixmap.height()
-        vw, vh = self.width(), self.height()
         if pw == 0 or ph == 0:
             return
-        self._fit_scale = min(vw / pw, vh / ph)
-        self._scale = self._fit_scale * self._zoom
+        vw, vh = self.width(), self.height()
+        # Default scale so that the pixmap fits in the window.
+        base_scale = min(vw / pw, vh / ph)
+        self._transform.zoom = zoom = base_scale * self._user_transform.zoom
 
-        disp_w, disp_h = pw * self._scale, ph * self._scale
+        disp_w, disp_h = pw * zoom, ph * zoom
+        # Default offset so that the pixmap is centered in the window.
         base_offset = QPoint(int((vw - disp_w) / 2), int((vh - disp_h) / 2))
-        self._offset = base_offset + self._pan_offset
+        self._transform.shift = base_offset + self._user_transform.shift
 
     def _widget_to_image(self, pos: QPoint) -> QPoint | None:
-        if (pixmap := self.pixmap) is None or self._scale == 0:
+        zoom = self._transform.zoom
+        shift = self._transform.shift
+        if (pixmap := self.pixmap) is None or zoom == 0:
             return None
-        x = (pos.x() - self._offset.x()) / self._scale
-        y = (pos.y() - self._offset.y()) / self._scale
+        x = (pos.x() - shift.x()) / zoom
+        y = (pos.y() - shift.y()) / zoom
         if 0 <= x <= pixmap.width() and 0 <= y <= pixmap.height():
             return QPoint(int(x), int(y))
         return None
 
     def _image_to_widget_point(self, pt: QPoint) -> QPoint:
-        return QPoint(
-            int(pt.x() * self._scale) + self._offset.x(),
-            int(pt.y() * self._scale) + self._offset.y(),
-        )
+        zoom = self._transform.zoom
+        shift = self._transform.shift
+        return QPoint(round(pt.x() * zoom) + shift.x(), round(pt.y() * zoom) + shift.y())
 
     def _image_rect_to_widget(self, rect: QRect) -> QRect:
+        zoom = self._transform.zoom
+        shift = self._transform.shift
         return QRect(
-            int(rect.x() * self._scale) + self._offset.x(),
-            int(rect.y() * self._scale) + self._offset.y(),
-            max(1, int(rect.width() * self._scale)),
-            max(1, int(rect.height() * self._scale)),
+            int(rect.x() * zoom) + shift.x(),
+            int(rect.y() * zoom) + shift.y(),
+            max(1, int(rect.width() * zoom)),
+            max(1, int(rect.height() * zoom)),
         )
 
     # ---- Qt events -------------------------------------------------------
@@ -200,9 +209,11 @@ class CheckboxesReviewer(QWidget):
             return
 
         self._recompute_transform()
-        disp_w = pixmap.width() * self._scale
-        disp_h = pixmap.height() * self._scale
-        target = QRect(self._offset.x(), self._offset.y(), int(disp_w), int(disp_h))
+        zoom = self._transform.zoom
+        shift = self._transform.shift
+        disp_w = pixmap.width() * zoom
+        disp_h = pixmap.height() * zoom
+        target = QRect(shift.x(), shift.y(), int(disp_w), int(disp_h))
         painter.drawPixmap(target, pixmap)
 
         for cb in self.checkboxes:
@@ -254,9 +265,9 @@ class CheckboxesReviewer(QWidget):
 
         angle = event.angleDelta().y()
         if angle > 0:
-            self._zoom = min(self._zoom * Zoom.STEP, Zoom.MAX)
+            self._user_transform.zoom = min(self._user_transform.zoom * Zoom.STEP, Zoom.MAX)
         elif angle < 0:
-            self._zoom = max(self._zoom / Zoom.STEP, Zoom.MIN)
+            self._user_transform.zoom = max(self._user_transform.zoom / Zoom.STEP, Zoom.MIN)
         else:
             return
 
@@ -267,12 +278,12 @@ class CheckboxesReviewer(QWidget):
             # and adjust pan so it stays under the cursor.
             new_widget_pt = self._image_to_widget_point(old_img_pt)
             delta = event.position().toPoint() - new_widget_pt
-            self._pan_offset += delta
+            self._user_transform.shift += delta
             self._recompute_transform()
 
         self.update()
         event.accept()
 
     def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.MouseButton.RightButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.reset_zoom()
