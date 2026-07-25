@@ -180,6 +180,7 @@ class Ui_MainWindow(object):
         self.actionNext.setText(_translate("MainWindow", "&Next"))
         self.actionPrevious.setText(_translate("MainWindow", "&Previous"))
         self.actionValidate.setText(_translate("MainWindow", "&Validate"))
+        self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
 from ptyx_mcq_corrector.issues.issues_view import IssuesViewer
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
 

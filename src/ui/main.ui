@@ -292,6 +292,9 @@
    <property name="text">
     <string>&amp;Validate</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Return</string>
+   </property>
   </action>
  </widget>
  <customwidgets>

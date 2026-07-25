@@ -28,6 +28,9 @@ from PyQt6.QtWidgets import QWidget
 
 from ptyx_mcq.scan.data import Page, Answer
 
+from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
+from ptyx_mcq.scan.data.questions import CbxState
+
 
 class Zoom:
     MIN = 0.2
@@ -39,6 +42,10 @@ class Checkbox:
     def __init__(self, answer: Answer, page: Page):
         self.answer = answer
         self.page = page
+
+    @property
+    def state(self) -> CbxState | None:
+        return self.answer.state
 
     def __contains__(self, pos: QPoint) -> bool:
         """Test if the given point is inside the checkbox rectangle of the given answer."""
@@ -140,13 +147,13 @@ class CheckboxesReviewer(QWidget):
             self._cached_pixmap = QPixmap.fromImage(QImage(str(self._page.pic.path)))
         return self._cached_pixmap
 
-    def current_checkbox(self) -> Checkbox | None:
-        """Return the checkbox currently hovered, if any, else `None`."""
-        for cb in self.checkboxes:
-            pos = self._widget_to_image(self.mapFromGlobal(QCursor.pos()))
-            if pos is not None and pos in cb:
-                return cb
-        return None
+    # def current_checkbox(self) -> Checkbox | None:
+    #     """Return the checkbox currently hovered, if any, else `None`."""
+    #     for cb in self._checkboxes:
+    #         pos = self._widget_to_image(self.mapFromGlobal(QCursor.pos()))
+    #         if pos is not None and pos in cb:
+    #             return cb
+    #     return None
 
     # ---- public API ----------------------------------------------------
 
@@ -240,17 +247,20 @@ class CheckboxesReviewer(QWidget):
         # print(self._hover, len(list(self.checkboxes)))
         for cb in self._checkboxes:
             wrect = self._image_rect_to_widget(cb.rect())
-
-            if cb.is_checked:
-                color = self.CHECKED_COLOR
-            else:
-                color = self.UNCHECKED_COLOR
-            if cb is self._hover:
-                print("Checkbox hovered.")
+            color_panel = CbxColors.reviewed_colors if cb.answer.reviewed else CbxColors.default_colors
+            # noinspection PyTypeChecker
+            color: QColor = QColor(*color_panel.get(cb.state, (0, 0, 0)))
+            thickness_panel = (
+                CbxThickness.reviewed_thicknesses if cb.answer.reviewed else CbxThickness.default_thicknesses
+            )
+            # noinspection PyTypeChecker
+            thickness: int = thickness_panel.get(cb.state, 2)
+            # if cb is self._hover:
+            #     print("Checkbox hovered.")
             hover_color = QColor(color.red(), color.green(), color.blue(), alpha=60)
             # noinspection PyTypeChecker
             painter.setBrush(hover_color if cb is self._hover else Qt.BrushStyle.NoBrush)
-            painter.setPen(QPen(color, 3))
+            painter.setPen(QPen(color, thickness))
             painter.drawRect(wrect)
 
     def mousePressEvent(self, event):
