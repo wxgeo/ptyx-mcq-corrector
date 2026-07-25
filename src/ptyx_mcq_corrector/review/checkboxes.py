@@ -22,10 +22,16 @@ from typing import Optional, Iterator
 
 from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
-from PyQt6.QtGui import QColor, QPixmap, QPen, QPainter, QCursor
+from PyQt6.QtGui import QColor, QPixmap, QPen, QPainter, QCursor, QImage, QWheelEvent
 from PyQt6.QtWidgets import QWidget
 
 from ptyx_mcq.scan.data import Page, Answer
+
+
+class Zoom:
+    MIN = 0.2
+    MAX = 8.0
+    STEP = 1.15  # multiplicative factor per wheel notch
 
 
 class Checkbox:
@@ -36,13 +42,13 @@ class Checkbox:
     def __contains__(self, pos: QPoint) -> bool:
         """Test if the given point is inside the checkbox rectangle of the given answer."""
         x, y = pos.x(), pos.y()
-        x0, y0 = self.answer.position
+        y0, x0 = self.answer.position
         size = self.page.pic.calibration_data.cell_size
         return x0 <= x <= x0 + size and y0 <= y <= y0 + size
 
     def rect(self) -> QRect:
         """Return the rectangle of the checkbox rectangle of the given answer."""
-        x0, y0 = self.answer.position
+        y0, x0 = self.answer.position
         size = self.page.pic.calibration_data.cell_size
         return QRect(x0, y0, size, size)
 
@@ -71,22 +77,45 @@ class CheckboxesReviewer(QWidget):
     CHECKED_FILL = QColor(30, 160, 60, 60)  # translucent green fill
     HOVER_COLOR = QColor(40, 120, 220)  # blue while hovering
 
+    _cached_pixmap: QPixmap | None
+    _hover: Checkbox | None
+    _page: Page | None
+    _fit_scale: float
+    _zoom: float
+    _scale: float
+    _offset: QPoint
+    _pan_offset: QPoint
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self._page: Page | None = None
-        self._scale: float = 1.0
-        self._offset = QPoint(0, 0)
-        self._hover: Optional[Checkbox] = None
-
         self.setMouseTracking(True)
         self.setMinimumSize(200, 200)
+        self.reset()
+
+    def reset(self) -> None:
+        self._cached_pixmap = None
+        self._hover = None
+        self._page = None
+        self._fit_scale = 1.0  # scale to fit widget (computed)
+        self._zoom = 1.0  # user zoom multiplier (1.0 = fit)
+        self._scale = 1.0  # effective scale = _fit_scale * _zoom
+        self._offset = QPoint(0, 0)
+        self._pan_offset = QPoint(0, 0)  # extra offset from user panning
+
+    def reset_zoom(self) -> None:
+        self._zoom = 1.0
+        self._pan_offset = QPoint(0, 0)
+        self._recompute_transform()
+        self.update()
 
     @property
-    def _pixmap(self) -> QPixmap | None:
+    def pixmap(self) -> QPixmap | None:
         """Return the pixmap of the MCQ image of the current page, if any, else `None`."""
         if self._page is None:
-            return None
-        return QPixmap.fromImage(ImageQt(self._page.pic.as_image()))
+            self._cached_pixmap = None
+        elif self._cached_pixmap is None:
+            self._cached_pixmap = QPixmap.fromImage(QImage(str(self._page.pic.path)))
+        return self._cached_pixmap
 
     def current_checkbox(self) -> Checkbox | None:
         """Return the checkbox currently hovered, if any, else `None`."""
@@ -105,6 +134,7 @@ class CheckboxesReviewer(QWidget):
     @page.setter
     def page(self, page: Page) -> None:
         self._page = page
+        self._cached_pixmap = None
         self.update()
 
     @property
@@ -113,48 +143,36 @@ class CheckboxesReviewer(QWidget):
             return iter([])
         return iter(Checkbox(answer, page) for question in page.pic for answer in question)
 
-    # def get_checkboxes(self) -> List[Checkbox]:
-    #     return self._page.pic.checkboxes_need_review
-    #
-    # def get_state(self) -> dict:
-    #     """Return {checkbox_id: checked_bool} for all checkboxes."""
-    #     return {c.id: c.checked for c in self._checkboxes}
-    #
-    # def set_checked(self, checkbox_id: str, checked: bool) -> None:
-    #     for c in self._checkboxes:
-    #         if c.id == checkbox_id:
-    #             if c.checked != checked:
-    #                 c.checked = checked
-    #                 self.checkboxToggled.emit(c.id, c.checked)
-    #             self.update()
-    #             return
-    #
-    # def clear_all(self) -> None:
-    #     for c in self._checkboxes:
-    #         c.checked = False
-    #     self.update()
-
     # ---- coordinate mapping (widget <-> original image) -----------------
 
     def _recompute_transform(self) -> None:
-        if (pixmap := self._pixmap) is None:
+        if (pixmap := self.pixmap) is None:
             return
         pw, ph = pixmap.width(), pixmap.height()
         vw, vh = self.width(), self.height()
         if pw == 0 or ph == 0:
             return
-        self._scale = min(vw / pw, vh / ph)
-        disp_w, disp_h = pw * self._scale, ph * self._scale
-        self._offset = QPoint(int((vw - disp_w) / 2), int((vh - disp_h) / 2))
+        self._fit_scale = min(vw / pw, vh / ph)
+        self._scale = self._fit_scale * self._zoom
 
-    def _widget_to_image(self, pos: QPoint) -> Optional[QPoint]:
-        if (pixmap := self._pixmap) is None or self._scale == 0:
+        disp_w, disp_h = pw * self._scale, ph * self._scale
+        base_offset = QPoint(int((vw - disp_w) / 2), int((vh - disp_h) / 2))
+        self._offset = base_offset + self._pan_offset
+
+    def _widget_to_image(self, pos: QPoint) -> QPoint | None:
+        if (pixmap := self.pixmap) is None or self._scale == 0:
             return None
         x = (pos.x() - self._offset.x()) / self._scale
         y = (pos.y() - self._offset.y()) / self._scale
         if 0 <= x <= pixmap.width() and 0 <= y <= pixmap.height():
             return QPoint(int(x), int(y))
         return None
+
+    def _image_to_widget_point(self, pt: QPoint) -> QPoint:
+        return QPoint(
+            int(pt.x() * self._scale) + self._offset.x(),
+            int(pt.y() * self._scale) + self._offset.y(),
+        )
 
     def _image_rect_to_widget(self, rect: QRect) -> QRect:
         return QRect(
@@ -175,7 +193,7 @@ class CheckboxesReviewer(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor(245, 245, 245))
 
-        pixmap = self._pixmap
+        pixmap = self.pixmap
         if pixmap is None:
             painter.setPen(QColor(120, 120, 120))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No image loaded")
@@ -195,16 +213,6 @@ class CheckboxesReviewer(QWidget):
                 painter.setPen(pen)
                 painter.setBrush(self.CHECKED_FILL)
                 painter.drawRect(wrect)
-                # draw a checkmark
-                # painter.setPen(QPen(self.CHECKED_COLOR, 3))
-                # p1 = QPoint(wrect.left() + int(wrect.width() * 0.20),
-                #             wrect.top() + int(wrect.height() * 0.55))
-                # p2 = QPoint(wrect.left() + int(wrect.width() * 0.42),
-                #             wrect.top() + int(wrect.height() * 0.78))
-                # p3 = QPoint(wrect.left() + int(wrect.width() * 0.82),
-                #             wrect.top() + int(wrect.height() * 0.22))
-                # painter.drawLine(p1, p2)
-                # painter.drawLine(p2, p3)
             else:
                 color = self.HOVER_COLOR if cb is self._hover else self.UNCHECKED_COLOR
                 painter.setPen(QPen(color, 2))
@@ -219,8 +227,8 @@ class CheckboxesReviewer(QWidget):
             return
         for cb in self.checkboxes:
             if img_pt in cb:
-                cb.checked = not cb.checked
-                self.checkboxToggled.emit(cb, cb.checked)
+                cb.toggle()
+                self.checkboxToggled.emit(cb, cb.is_checked)
                 self.update()
                 break
 
@@ -236,3 +244,35 @@ class CheckboxesReviewer(QWidget):
             self._hover = new_hover
             self.setCursor(Qt.CursorShape.PointingHandCursor if new_hover else Qt.CursorShape.ArrowCursor)
             self.update()
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        if self.pixmap is None:
+            return
+
+        # Position in image coordinates BEFORE zoom change, so we can keep it fixed
+        old_img_pt = self._widget_to_image(event.position().toPoint())
+
+        angle = event.angleDelta().y()
+        if angle > 0:
+            self._zoom = min(self._zoom * Zoom.STEP, Zoom.MAX)
+        elif angle < 0:
+            self._zoom = max(self._zoom / Zoom.STEP, Zoom.MIN)
+        else:
+            return
+
+        self._recompute_transform()
+
+        if old_img_pt is not None:
+            # Recompute where that same image point now lands in widget coords,
+            # and adjust pan so it stays under the cursor.
+            new_widget_pt = self._image_to_widget_point(old_img_pt)
+            delta = event.position().toPoint() - new_widget_pt
+            self._pan_offset += delta
+            self._recompute_transform()
+
+        self.update()
+        event.accept()
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self.reset_zoom()

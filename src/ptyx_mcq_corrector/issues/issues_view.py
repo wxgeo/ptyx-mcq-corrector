@@ -102,8 +102,9 @@ class IssuesViewer(QTreeView, EnhancedWidget):
     def sync_issue_reviewer(self, issue: IssueInfo) -> None:
         print("Selected:", issue)
         doc = self._model.state.parser.scan_data.used_docs_index[issue.doc]
-        if issue.type == IssuesTypes.AMBIGUOUS_ANSWERS:
-            print("Cas 1")
-            page = doc.pages_index[issue.page]
-            self.main_window.checkboxes.page = page
-            self.main_window.main_area.setCurrentIndex(1)
+        match issue.type:
+            case IssuesTypes.AMBIGUOUS_ANSWERS:
+                print("Cas 1")
+                page = doc.pages_index[issue.page]
+                self.main_window.checkboxes.page = page
+                self.main_window.main_area.setCurrentIndex(1)

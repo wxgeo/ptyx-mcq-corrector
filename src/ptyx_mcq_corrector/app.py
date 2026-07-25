@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+import faulthandler
+
+faulthandler.enable()
+
 import signal
 import sys
 from argparse import ArgumentParser

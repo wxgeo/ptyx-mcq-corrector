@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssuesTypes, IssueInfo
+from ptyx_mcq_corrector.issues.issues_model import IssueInfo
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -107,6 +107,7 @@ class FileEventsHandler(QObject):
 
         Assure synchronization between ui and state."""
         self.main_window.issuesDock.hide()
+        self.main_window.main_area.setCurrentIndex(0)
 
         if self.state.current_file is None:
             self.main_window.setWindowTitle(param.WINDOW_TITLE)
@@ -152,13 +153,7 @@ class FileEventsHandler(QObject):
             action_button.hide()
             self.main_window.enable_navigation()
             self.main_window.issuesDock.show()
-            self.main_window.issues_controller.display_issues()
-            if (issue := self.state.current_issue) is not None:
-                # self.main_window.issues_controller.view.setCurrentIndex(issue.index)
-                if issue.type == IssuesTypes.AMBIGUOUS_ANSWERS:
-                    page = self.state.parser.scan_data.used_docs_index[issue.doc].pages_index[issue.page]
-                    self.main_window.checkboxes.page = page
-                    self.main_window.main_area.setCurrentIndex(1)
+            self.main_window.issuesView.display_issues()
 
         self.update_status_message()  # TODO
 

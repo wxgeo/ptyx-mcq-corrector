@@ -76,10 +76,10 @@ def _add_category(root: QStandardItem, issues_type: IssuesTypes, results: FoundI
     assert root is not None
 
 
-class IssuesModel:
+class IssuesModel(QStandardItemModel):
     def __init__(self, state: "State"):
+        super().__init__()
         self.state = state
-        self.tree_model: QStandardItemModel = QStandardItemModel()
         self.current_doc: DocumentId | None = None
         self.current_page: PageNum | None = None
 
@@ -101,8 +101,8 @@ class IssuesModel:
             issues = self.state.data_issues
             assert issues is not None
             categories = {
-                IssuesTypes.DUPLICATES: issues.names_to_review,
-                IssuesTypes.MISSING_PAGES: issues.ambiguous_answers_by_doc,
+                IssuesTypes.NAMES: issues.names_to_review,
+                IssuesTypes.AMBIGUOUS_ANSWERS: issues.ambiguous_answers_by_doc,
             }
             return self._fill_model("Data issues", categories)
         return False
@@ -117,9 +117,9 @@ class IssuesModel:
 
         Return `True` if any issues were found, `False` otherwise.
         """
-        (model := self.tree_model).clear()
-        model.setHorizontalHeaderLabels([title])
-        root = model.invisibleRootItem()  # top of the tree
+        self.clear()
+        self.setHorizontalHeaderLabels([title])
+        root = self.invisibleRootItem()  # top of the tree
         for issues_type, results in categories.items():
             assert root is not None
             _add_category(root, issues_type, results)

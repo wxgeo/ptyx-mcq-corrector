@@ -150,7 +150,7 @@ class Ui_MainWindow(object):
         self.action_Fix_configuration_file.setText(_translate("MainWindow", "&Fix configuration file"))
         self.action_Close.setText(_translate("MainWindow", "&Close"))
         self.actionEMPTY.setText(_translate("MainWindow", "EMPTY"))
-from ptyx_mcq_corrector.issues.issues_viewer import IssuesViewer
+from ptyx_mcq_corrector.issues.issues_view import IssuesViewer
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
 
 

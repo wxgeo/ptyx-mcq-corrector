@@ -4,15 +4,15 @@ from base64 import urlsafe_b64encode
 from pathlib import Path
 from typing import Final
 
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, QSize
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
-from ptyx_mcq_corrector.issues.issues_controler import IssuesController
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State
+from ptyx_mcq_corrector.issues.issues_model import IssuesModel
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
@@ -39,8 +39,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_thread = QThread(self)
         self.scan_handler.moveToThread(self.scan_thread)
 
-        self.issues_controller = IssuesController(self)
-        self.issues_controller.issue_selected.connect(self.file_events_handler.on_issue_selected)
+        self.issuesView.setModel(IssuesModel(self.state))
+        # self.issues_controller = IssuesController(self)
+        # self.issuesView.issue_selected.connect(self.file_events_handler.on_issue_selected)
 
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
         # print("created temporary directory", self.tmp_dir)
@@ -62,6 +63,8 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.connect_menu_signals()
         self.file_events_handler.finalize(args.path)
         self.scan_thread.start()
+
+        print("PARENT:", self.dockWidgetContents.parent())
 
     def connect_menu_signals(self) -> None:
         # Don't change handler variable value (because of name binding process in lambdas).
