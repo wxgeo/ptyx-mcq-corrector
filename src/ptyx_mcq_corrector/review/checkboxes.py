@@ -99,12 +99,11 @@ class CheckboxesReviewer(QWidget):
 
     UNCHECKED_COLOR = QColor(220, 40, 40)  # red outline
     CHECKED_COLOR = QColor(30, 160, 60)  # green outline
-    CHECKED_FILL = QColor(30, 160, 60, 60)  # translucent green fill
-    HOVER_COLOR = QColor(40, 120, 220)  # blue while hovering
 
     _cached_pixmap: QPixmap | None
     _hover: Checkbox | None
     _page: Page | None
+    _checkboxes: list[Checkbox]
     # The transformation applied by the user, using the mouse wheel and right-button dragging.
     _user_transform: Transformation
     # The global transformation, resulting of both the base transformation automatically calculated for the pixmap
@@ -122,6 +121,7 @@ class CheckboxesReviewer(QWidget):
         self._cached_pixmap = None
         self._hover = None
         self._page = None
+        self._checkboxes = []
         self._transform = Transformation()
         self._user_transform = Transformation()
         self._drag = Drag(self)
@@ -158,14 +158,15 @@ class CheckboxesReviewer(QWidget):
     def page(self, page: Page) -> None:
         self.reset()
         self._page = page
+        self._checkboxes = [Checkbox(answer, page) for question in page.pic for answer in question]
         self._recompute_transform()
         self.update()
 
-    @property
-    def checkboxes(self) -> Iterator[Checkbox]:
-        if (page := self.page) is None:
-            return iter([])
-        return iter(Checkbox(answer, page) for question in page.pic for answer in question)
+    # @property
+    # def checkboxes(self) -> Iterator[Checkbox]:
+    #     if (page := self.page) is None:
+    #         return iter([])
+    #     return iter(Checkbox(answer, page) for question in page.pic for answer in question)
 
     # ---- coordinate mapping (widget <-> original image) -----------------
 
@@ -236,19 +237,21 @@ class CheckboxesReviewer(QWidget):
         target = QRect(shift.x(), shift.y(), int(disp_w), int(disp_h))
         painter.drawPixmap(target, pixmap)
 
-        for cb in self.checkboxes:
+        # print(self._hover, len(list(self.checkboxes)))
+        for cb in self._checkboxes:
             wrect = self._image_rect_to_widget(cb.rect())
 
             if cb.is_checked:
-                pen = QPen(self.CHECKED_COLOR, 3)
-                painter.setPen(pen)
-                painter.setBrush(self.CHECKED_FILL)
-                painter.drawRect(wrect)
+                color = self.CHECKED_COLOR
             else:
-                color = self.HOVER_COLOR if cb is self._hover else self.UNCHECKED_COLOR
-                painter.setPen(QPen(color, 2))
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-                painter.drawRect(wrect)
+                color = self.UNCHECKED_COLOR
+            if cb is self._hover:
+                print("Checkbox hovered.")
+            hover_color = QColor(color.red(), color.green(), color.blue(), alpha=60)
+            # noinspection PyTypeChecker
+            painter.setBrush(hover_color if cb is self._hover else Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(color, 3))
+            painter.drawRect(wrect)
 
     def mousePressEvent(self, event):
         if (
@@ -261,7 +264,7 @@ class CheckboxesReviewer(QWidget):
             img_pt = self._widget_to_image(event.pos())
             if img_pt is None:
                 return
-            for cb in self.checkboxes:
+            for cb in self._checkboxes:
                 if img_pt in cb:
                     cb.toggle()
                     self.checkboxToggled.emit(cb, cb.is_checked)
@@ -281,7 +284,7 @@ class CheckboxesReviewer(QWidget):
         img_pt = self._widget_to_image(event.pos())
         new_hover = None
         if img_pt is not None:
-            for cb in self.checkboxes:
+            for cb in self._checkboxes:
                 if img_pt in cb:
                     new_hover = cb
                     break
