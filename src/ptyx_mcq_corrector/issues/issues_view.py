@@ -71,7 +71,7 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             if item is not None:
                 issue = item.data()
                 if issue is not None:
-                    self.sync_issue_reviewer(issue=issue)
+                    self.main_window.file_events_handler.on_issue_selected(issue=issue)
 
         # self.issue_selected.emit(item.data())
 
@@ -98,14 +98,3 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             self.setItemDelegate(IssueStateDelegate(self))
             self.expandAll()
             self.show()
-
-    def sync_issue_reviewer(self, issue: IssueInfo) -> None:
-        print("Selected:", issue)
-        doc = self._model.state.parser.scan_data.used_docs_index[issue.doc]
-        match issue.type:
-            case IssuesTypes.AMBIGUOUS_ANSWERS:
-                print("Cas 1")
-                page = doc.pages_index[issue.page]
-                self.main_window.checkboxes.page = page
-                self.main_window.main_area.setCurrentIndex(1)
-                self.main_window.action_button.setEnabled(True)

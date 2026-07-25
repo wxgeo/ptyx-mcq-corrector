@@ -4,14 +4,14 @@ from pathlib import Path
 from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssueInfo
+from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssuesTypes
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -78,9 +78,18 @@ class FileEventsHandler(QObject):
             self.open_file(path)
         return True
 
+    def scan_or_abort(self) -> None:
+        if self.state.scan_state == ScanState.IN_PROGRESS:
+            self.abort()
+        else:
+            self.scan()
+
     def abort(self) -> None:
         """Call this slot to abort the current running action, if possible."""
         self.abort_event.set()
+
+    def scan(self) -> None:
+        self.main_window.scan_request.emit()
 
     # ---------------------
     #      Shortcuts
@@ -94,63 +103,11 @@ class FileEventsHandler(QObject):
     #      UI synchronization with state
     # ==========================================
 
-    @property
-    def current_file_shortname(self) -> str:
-        return (
-            self.state.current_file.name[: -len(CONFIG_FILE_EXTENSION)]
-            if self.state.current_file is not None
-            else ""
-        )
-
     def _update_ui(self) -> None:
         """Update window and tab titles according to state data.
 
         Assure synchronization between ui and state."""
-        self.main_window.main_area.setCurrentIndex(0)
-        self.main_window.disable_review_ui()
-
-        if self.state.current_file is None:
-            self.main_window.setWindowTitle(param.WINDOW_TITLE)
-            self.main_window.header_label.setText("No document")
-            self.main_window.action_button.hide()
-            return
-
-        name = self.current_file_shortname
-        self.main_window.setWindowTitle(f"{param.WINDOW_TITLE} - {name}")
-        # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
-        self.main_window.header_label.setText(
-            f"<p style='text-align:center'>Document <i><b><a href='#'>{name}</a></b></i> selected.</p>"
-            "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
-        )
-        try:
-            self.main_window.header_label.linkActivated.disconnect()
-        except TypeError:
-            pass  # no connection existed yet
-        self.main_window.header_label.linkActivated.connect(
-            lambda _: self.main_window.file_events_handler.open_file()
-        )
-        self.main_window.header_label.setOpenExternalLinks(False)
-        action_button = self.main_window.action_button
-        try:
-            action_button.clicked.disconnect()
-        except TypeError:
-            pass  # no connection existed yet
-        self.main_window.actionScan_documents.setEnabled(True)
-
-        if self.state.scan_state == ScanState.TO_DO:
-            action_button.setText("Scan")
-            action_button.setIcon(QIcon.fromTheme("media-playback-start"))
-            action_button.show()
-            action_button.clicked.connect(self.main_window.scan_handler.scan)
-        elif self.state.scan_state == ScanState.IN_PROGRESS:
-            action_button.setText("Abort")
-            action_button.setIcon(QIcon.fromTheme("process-stop"))
-            action_button.clicked.connect(self.abort)
-            self.main_window.actionScan_documents.setEnabled(False)
-        elif self.state.scan_state == ScanState.DONE:
-            self.main_window.enable_review_ui()
-
-        self.update_status_message()  # TODO
+        self.main_window.update_ui()
 
     # -------------------------------
     #    Functions for each state
@@ -177,7 +134,13 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def on_issue_selected(self, issue: IssueInfo) -> bool:
+        assert issue is not None
         self.state.current_issue = issue
+        doc = self.state.parser.scan_data.used_docs_index[issue.doc]
+        match issue.type:
+            case IssuesTypes.AMBIGUOUS_ANSWERS:
+                page = doc.pages_index[issue.page]
+                self.main_window.checkboxes.page = page
         return True
 
     @update_ui
@@ -232,6 +195,7 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def on_scan_started(self) -> bool:
+        self.state.current_issue = None
         self.state.scan_state = ScanState.IN_PROGRESS
         msg = f"Starting scan of '{self.state.current_file}'..."
         print(msg)
@@ -266,8 +230,3 @@ class FileEventsHandler(QObject):
             f"pTyX MCQ configuration file (*{CONFIG_FILE_EXTENSION})",
         )
         return Path(filename) if filename else None
-
-    def update_status_message(self) -> None:
-        # TODO: implement status message.
-        self.main_window.statusbar.setStyleSheet("")
-        self.main_window.status_label.setText("")

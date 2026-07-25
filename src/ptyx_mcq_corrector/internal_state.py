@@ -44,6 +44,11 @@ class State:
         self.current_issue: IssueInfo | None = None
 
     @property
+    def current_file_shortname(self) -> str:
+        current_file = self._current_file
+        return current_file.name[: -len(CONFIG_FILE_EXTENSION)] if current_file is not None else ""
+
+    @property
     def parser(self) -> MCQPictureParser | None:
         if (current_file := self._current_file) is None:
             return None

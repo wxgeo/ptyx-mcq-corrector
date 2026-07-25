@@ -19,94 +19,6 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QToolButton" name="previous_button">
-        <property name="minimumSize">
-         <size>
-          <width>80</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Previous</string>
-        </property>
-        <property name="icon">
-         <iconset theme="go-previous"/>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonIconOnly</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QLabel" name="header_label">
-        <property name="text">
-         <string>No document</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::RichText</enum>
-        </property>
-        <property name="openExternalLinks">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="action_button">
-        <property name="text">
-         <string>Scan</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="next_button">
-        <property name="minimumSize">
-         <size>
-          <width>80</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Next</string>
-        </property>
-        <property name="icon">
-         <iconset theme="go-next"/>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonIconOnly</enum>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
      <widget class="QScrollArea" name="scrollArea">
       <property name="widgetResizable">
        <bool>true</bool>
@@ -117,16 +29,75 @@
          <x>0</x>
          <y>0</y>
          <width>817</width>
-         <height>390</height>
+         <height>421</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QStackedWidget" name="main_area">
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
-          <widget class="QWidget" name="blank"/>
+          <widget class="QWidget" name="blank">
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <item>
+               <spacer name="horizontalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>778</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="header_label">
+                <property name="text">
+                 <string>No document</string>
+                </property>
+                <property name="textFormat">
+                 <enum>Qt::RichText</enum>
+                </property>
+                <property name="openExternalLinks">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>778</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
           <widget class="CheckboxesReviewer" name="checkboxes"/>
          </widget>
         </item>
@@ -142,7 +113,7 @@
      <x>0</x>
      <y>0</y>
      <width>1117</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -198,6 +169,9 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2"/>
+     </item>
+     <item>
       <widget class="IssuesViewer" name="issuesView"/>
      </item>
     </layout>
@@ -207,16 +181,19 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionScan_documents"/>
+   <addaction name="separator"/>
    <addaction name="actionPrevious"/>
    <addaction name="actionNext"/>
-   <addaction name="separator"/>
-   <addaction name="actionScan_documents"/>
    <addaction name="separator"/>
    <addaction name="actionValidate"/>
   </widget>
@@ -246,7 +223,7 @@
   </action>
   <action name="actionScan_documents">
    <property name="icon">
-    <iconset theme="media-playback-start">
+    <iconset theme="scanner">
      <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
@@ -257,6 +234,10 @@
    </property>
   </action>
   <action name="action_Reset_scan">
+   <property name="icon">
+    <iconset theme="document-revert">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>&amp;Reset scan</string>
    </property>
@@ -286,19 +267,28 @@
    </property>
   </action>
   <action name="actionNext">
+   <property name="icon">
+    <iconset theme="go-next">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>&amp;Next</string>
    </property>
   </action>
   <action name="actionPrevious">
    <property name="icon">
-    <iconset theme="go-previous"/>
+    <iconset theme="go-previous">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Previous</string>
    </property>
   </action>
   <action name="actionValidate">
+   <property name="icon">
+    <iconset theme="dialog-ok">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
    <property name="text">
     <string>&amp;Validate</string>
    </property>

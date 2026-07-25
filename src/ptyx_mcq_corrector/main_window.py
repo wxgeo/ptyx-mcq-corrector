@@ -4,15 +4,16 @@ from base64 import urlsafe_b64encode
 from pathlib import Path
 from typing import Final
 
-from PyQt6.QtCore import QThread, QSize
+from PyQt6.QtCore import QThread, QSize, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 
+from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
-from ptyx_mcq_corrector.internal_state import State
-from ptyx_mcq_corrector.issues.issues_model import IssuesModel
+from ptyx_mcq_corrector.internal_state import State, ScanState
+from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssueInfo, IssuesTypes
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
@@ -24,6 +25,8 @@ def path_hash(path: Path | str) -> str:
 class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # restore_session_signal = pyqtSignal(name="restore_session_signal")
     # new_session_signal = pyqtSignal(name="new_session_signal")
+
+    scan_request = pyqtSignal(name="scan_request")
 
     def __init__(self, args: Namespace) -> None:
         super().__init__(parent=None)
@@ -63,6 +66,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.connect_menu_signals()
         self.file_events_handler.finalize(args.path)
         self.scan_thread.start()
+        self.scan_request.connect(self.scan_handler.scan)
 
         print("PARENT:", self.dockWidgetContents.parent())
 
@@ -73,50 +77,13 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # *** 'File' menu ***
         self.action_Open_directory.triggered.connect(lambda: handler.open_file())
         # Don't use lambda, else the thread will not be detected correctly by Qt.
-        self.actionScan_documents.triggered.connect(self.scan_handler.scan)
+        self.actionScan_documents.triggered.connect(self.file_events_handler.scan_or_abort)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset())
+
         self.scan_handler.scan_progress.connect(handler.on_scan_in_progress)
-        # self.action_button.clicked.connect(self.scan_handler.toggle_action)
-        # self.action_Save.triggered.connect(lambda: handler.save_doc(side=None, index=None))
-        # self.actionSave_as.triggered.connect(lambda: handler.save_doc_as(side=None, index=None))
         self.action_Close.triggered.connect(lambda: handler.close_file())
-        self.menu_File.aboutToShow.connect(self.update_recent_files_menu)
+        self.menu_File.aboutToShow.connect(self._update_recent_files_menu)
         self.action_About.triggered.connect(self.about)
-        # self.actionN_ew_Session.triggered.connect(lambda: handler.new_session())
-        # self.menuFichier.aboutToShow.connect(self.update_recent_files_menu)
-        #
-        # # *** 'Make' menu ***
-        # self.action_LaTeX.triggered.connect(lambda: self.compilation_tabs.generate_latex())
-        # self.action_Pdf.triggered.connect(lambda: self.compilation_tabs.generate_pdf())
-        # # Support multiple shortcuts
-        # self.action_Pdf.setShortcuts(["F5", "Ctrl+Return"])
-        # self.action_LaTeX.setShortcuts(["Shift+F5", "Ctrl+Shift+Return"])
-        # self.actionPublish.triggered.connect(
-        #     lambda: self.publish_toolbar.setVisible(not self.publish_toolbar.isVisible())
-        # )
-        #
-        # # *** 'Code' menu ***
-        # self.action_Update_imports.triggered.connect(handler.update_ptyx_imports)
-        # self.action_Add_folder.triggered.connect(handler.add_directory)
-        # self.action_Open_file_from_current_import_line.triggered.connect(
-        #     lambda: handler.open_file_from_current_ptyx_import_directive()
-        # )
-        # self.actionComment.triggered.connect(handler.toggle_comment)
-        # self.actionFormat_python_code.triggered.connect(handler.format_file)
-        #
-        # # *** 'Tools' menu ***
-        # self.action_Add_MCQ_Editor_to_start_menu.triggered.connect(self.add_desktop_menu_entry)
-        #
-        # # *** 'Edit' menu ***
-        # self.actionFind.triggered.connect(
-        #     lambda: self.search_dock.toggle_find_and_replace_dialog(replace=False)
-        # )
-        # self.actionReplace.triggered.connect(
-        #     lambda: self.search_dock.toggle_find_and_replace_dialog(replace=True)
-        # )
-        #
-        # # *** 'Debug' menu ***
-        # self.action_Send_Qscintilla_Command.triggered.connect(self.dbg_send_scintilla_command)
 
     # noinspection PyMethodOverriding
     def closeEvent(self, event: QCloseEvent | None) -> None:
@@ -130,21 +97,79 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
 
-    def disable_review_ui(self):
-        self.previous_button.hide()
-        self.next_button.hide()
+    def update_ui(self) -> None:
+        self.main_area.setCurrentIndex(0)
+        self._update_review_ui()
+        self._update_scan_ui()
+        self._update_title()
+        self._update_header()
+        self._update_main_area()
+        self._update_status_message()  # TODO
+
+    def _update_main_area(self) -> None:
+        match self.state.current_issue:
+            case IssueInfo(type=IssuesTypes.AMBIGUOUS_ANSWERS):
+                index = 1
+            case _:
+                index = 0
+        self.main_area.setCurrentIndex(index)
+
+    def _update_scan_ui(self) -> None:
+        action = self.actionScan_documents
+        if self.state.scan_state == ScanState.IN_PROGRESS:
+            text = "&Abort scan"
+            mime = "process-stop"
+        else:
+            text = "&Scan documents"
+            mime = "scanner"
+        action.setText(text)
+        action.setIcon(QIcon.fromTheme(mime))
+        action.setEnabled(self.state.current_file is not None)
+
+    def _update_title(self) -> None:
+        title = param.WINDOW_TITLE
+        if self.state.current_file is not None:
+            title += f" - {self.state.current_file_shortname}"
+        self.setWindowTitle(title)
+
+    def _update_header(self) -> None:
+        if self.state.current_file is None:
+            self.header_label.setText("No document")
+        else:
+            self.header_label.setText(self.state.current_file_shortname)
+            # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
+            self.header_label.setText(
+                "<p style='text-align:center'>Document <i><b>"
+                f"<a href='#'>{self.state.current_file_shortname}</a>"
+                "</b></i> selected.</p>"
+                "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
+            )
+            try:
+                self.header_label.linkActivated.disconnect()
+            except TypeError:
+                pass  # no connection existed yet
+            self.header_label.linkActivated.connect(lambda _: self.file_events_handler.open_file())
+            self.header_label.setOpenExternalLinks(False)
+
+    def _disable_review_ui(self):
         self.menuReview.setEnabled(False)
         self.issuesDock.hide()
+        for action in [self.actionPrevious, self.actionNext, self.actionValidate]:
+            action.setVisible(False)
 
-    def enable_review_ui(self):
-        self.previous_button.show()
-        self.next_button.show()
+    def _enable_review_ui(self):
+        for action in [self.actionPrevious, self.actionNext, self.actionValidate]:
+            action.setVisible(True)
+            action.setEnabled(self.state.current_issue is not None)
         self.menuReview.setEnabled(True)
-        self.action_button.setText("Validate")
-        for button in [self.previous_button, self.next_button, self.action_button]:
-            button.setEnabled(self.state.current_issue is not None)
         self.issuesDock.show()
         self.issuesView.display_issues()
+
+    def _update_review_ui(self) -> None:
+        if self.state.scan_state == ScanState.DONE:
+            self._enable_review_ui()
+        else:
+            self._disable_review_ui()
 
     def request_to_close(self) -> bool:
         """Save state and return a boolean indicating if closing is accepted.
@@ -154,7 +179,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     # noinspection PyDefaultArgument
-    def update_recent_files_menu(self) -> None:
+    def _update_recent_files_menu(self) -> None:
         recent_files = tuple(self.state.recent_files)
         if not recent_files:
             self.menu_Recent_files.menuAction().setVisible(False)
@@ -175,28 +200,13 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
                 )
             self.menu_Recent_files.menuAction().setVisible(True)
 
+    def _update_status_message(self) -> None:
+        # TODO: implement status message.
+        self.statusbar.setStyleSheet("")
+        self.status_label.setText("")
+
     def add_desktop_menu_entry(self) -> None:
         pass
-        # completed_process = install_desktop_shortcut()
-        # if completed_process.returncode == 0:
-        #     # noinspection PyTypeChecker
-        #     QMessageBox.information(
-        #         self, "Shortcut installed", "This application was successfully added to start menu."
-        #     )
-        # else:
-        #     # noinspection PyTypeChecker
-        #     QMessageBox.critical(self, "Unable to install shortcut", completed_process.stdout)
-
-    # def get_temp_path(self, suffix: Literal["tex", "pdf"], doc_path: Path = None) -> Path | None:
-    #     """Get the path of a temporary file corresponding to the current document."""
-    #     if doc_path is None:
-    #         doc = self.state.current_doc
-    #         if doc is None:
-    #             return None
-    #         doc_path = doc.path
-    #         if doc_path is None:
-    #             doc_path = Path(f"new-doc-{doc.doc_id}")
-    #     return self.tmp_dir / f"{'' if doc_path is None else doc_path.stem}-{path_hash(doc_path)}.{suffix}"
 
     def about(self) -> None:
         AboutDialog(self).exec()

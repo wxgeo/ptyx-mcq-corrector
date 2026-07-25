@@ -1,16 +1,9 @@
 """
-This part is responsible for the handling the scan process, so this is the core of the application.
+This part is responsible for the handling the scan process.
 
 Architecture:
-- The ScanManager exists in the main thread (the thread of the UI).
-  It owns another thread, the "scan thread", in which all the scan related processes will take place.
-  In this scan thread, a worker (of class `ScanWorker`) will handle the work. It will communicate
-  with the main thread through Qt signals and slots mechanism.
-- The ScanWorker will supervise all the work, waiting from information from the scan process,
-  and giving back this information to the ScanManager.
-  Since the ScanWorker is in another thread, it should not have any reference
-  to the main window, any interface widget nor the ScanManager.
-  It will only communicate with the ScanManager with this mechanism of slots and signals.
+  The ScanManager lives in specific thread, so that any action won't block the user interface.
+  It communicates with the main thread using Qt signals.
 """
 
 from functools import wraps
@@ -94,12 +87,18 @@ class ScanManager(QObject):
     def scan(self):
         self._scan()
 
+    # Warning:
+    # When connecting a signal to a plain Python callable, PyQt inspects the callable's signature to decide
+    # how many of the signal's arguments to actually pass — it only forwards as many as the slot appears to accept.
+    # However, the @action decorator fools this pyQt mechanism: the ._scan() signature is not correctly detected.
+    # So, the following method should never be used directly a slot, always use a wrapper instead.
     @action
     def _scan(self: "ScanManager"):
         """Launch the scan process.
 
         This is the main entry point of the scan process.
         """
+        self.abort_event.clear()  # just in case
         if (parser := self.parser) is not None:
             self.scan_started.emit()
             parser.scan_data.run(progression=self.progression, abort_event=self.abort_event)
