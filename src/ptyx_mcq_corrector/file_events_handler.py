@@ -208,6 +208,7 @@ class FileEventsHandler(QObject):
     @update_ui
     def on_scan_ended(self) -> bool:
         self.state.scan_state = ScanState.DONE
+        self.main_window.issuesView.display_issues()
         return True
 
     @update_ui

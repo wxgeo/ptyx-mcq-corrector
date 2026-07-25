@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QStandardItemModel
@@ -73,23 +73,28 @@ class IssuesViewer(QTreeView, EnhancedWidget):
                 if issue is not None:
                     self.main_window.file_events_handler.on_issue_selected(issue=issue)
 
-        # self.issue_selected.emit(item.data())
+    def moveCursor(
+        self, cursor_action: QAbstractItemView.CursorAction, modifiers: Qt.KeyboardModifier
+    ) -> QModelIndex:
+        if cursor_action == QAbstractItemView.CursorAction.MoveDown:
+            return self._navigate(self.indexBelow)
+        elif cursor_action == QAbstractItemView.CursorAction.MoveUp:
+            return self._navigate(self.indexAbove)
+        return super().moveCursor(cursor_action, modifiers)
 
-    def moveCursor(self, cursor_action, modifiers):
-        index = super().moveCursor(cursor_action, modifiers)
+    def _navigate(self, step_func: Callable[[QModelIndex], QModelIndex]) -> QModelIndex:
+        original_index = index = self.currentIndex()
+        while (index := step_func(index)).isValid():
+            if index.flags() & Qt.ItemFlag.ItemIsSelectable:
+                return index
+            # last_index = index
+        return original_index
 
-        # Keep skipping while landing on a non-selectable item
-        while index.isValid() and not (index.flags() & Qt.ItemFlag.ItemIsSelectable):
-            if cursor_action == QAbstractItemView.CursorAction.MoveDown:
-                next_index = self.indexBelow(index)
-            elif cursor_action == QAbstractItemView.CursorAction.MoveUp:
-                next_index = self.indexAbove(index)
-            else:
-                break  # don't try to handle Left/Right/Home/End here
-            if not next_index.isValid():
-                break  # reached top/bottom of tree, stop to avoid infinite loop
-            index = next_index
-        return index
+    def move_to_next_index(self) -> None:
+        self.setCurrentIndex(self._navigate(self.indexBelow))
+
+    def move_to_previous_index(self) -> None:
+        self.setCurrentIndex(self._navigate(self.indexAbove))
 
     def display_issues(self):
         model = self._model

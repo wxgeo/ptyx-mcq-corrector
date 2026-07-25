@@ -67,6 +67,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.file_events_handler.finalize(args.path)
         self.scan_thread.start()
         self.scan_request.connect(self.scan_handler.scan)
+        self.scan_handler.scan_progress.connect(self.file_events_handler.on_scan_in_progress)
 
         print("PARENT:", self.dockWidgetContents.parent())
 
@@ -80,7 +81,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionScan_documents.triggered.connect(self.file_events_handler.scan_or_abort)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset())
 
-        self.scan_handler.scan_progress.connect(handler.on_scan_in_progress)
+        self.actionNext.triggered.connect(self.issuesView.move_to_next_index)
+        self.actionPrevious.triggered.connect(self.issuesView.move_to_previous_index)
+
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)
         self.action_About.triggered.connect(self.about)
@@ -163,7 +166,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
             action.setEnabled(self.state.current_issue is not None)
         self.menuReview.setEnabled(True)
         self.issuesDock.show()
-        self.issuesView.display_issues()
 
     def _update_review_ui(self) -> None:
         if self.state.scan_state == ScanState.DONE:
