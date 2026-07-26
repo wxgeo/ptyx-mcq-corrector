@@ -44,6 +44,7 @@ class State:
     def __init__(self, recent_files: list[Path] | None = None, current_file: Path | None = None):
         self._recent_files: list[Path] = recent_files or []
         self._reset_state()
+        self._current_file = current_file
 
     def _reset_state(self) -> None:
         """
