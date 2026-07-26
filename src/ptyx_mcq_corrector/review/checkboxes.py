@@ -23,13 +23,12 @@ from ptyx_mcq.scan.data import Page, Answer
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
 from ptyx_mcq.scan.data.questions import CbxState
 
-FULL_WIDTH = True
-
 
 class Zoom:
     MIN = 0.2
     MAX = 8.0
     STEP = 1.15  # multiplicative factor per wheel notch
+    FULL_WIDTH = True
 
 
 class Checkbox:
@@ -99,9 +98,6 @@ class CheckboxesReviewer(QWidget):
     checkbox_toggled = pyqtSignal(Checkbox, bool, name="checkbox_toggled")  # (checkbox, new_checked_state)
     next_page_requested = pyqtSignal(name="next_page_requested")
     previous_page_requested = pyqtSignal(name="previous_page_requested")
-
-    UNCHECKED_COLOR = QColor(220, 40, 40)  # red outline
-    CHECKED_COLOR = QColor(30, 160, 60)  # green outline
 
     _cached_pixmap: QPixmap | None
     _hover: Checkbox | None
@@ -191,14 +187,14 @@ class CheckboxesReviewer(QWidget):
             return
         vw, vh = self.width(), self.height()
         # Default scale so that the pixmap fits in the window.
-        if FULL_WIDTH:
+        if Zoom.FULL_WIDTH:
             base_scale = max(vw / pw, vh / ph)
         else:
             base_scale = min(vw / pw, vh / ph)
         self._transform.zoom = zoom = base_scale * self._user_transform.zoom
 
         disp_w, disp_h = pw * zoom, ph * zoom
-        if FULL_WIDTH:
+        if Zoom.FULL_WIDTH:
             # Default offset so that the pixmap is centered horizontally in the window.
             base_offset = QPoint(int((vw - disp_w) / 2), 0)
         else:
@@ -329,8 +325,8 @@ class CheckboxesReviewer(QWidget):
             self.setCursor(Qt.CursorShape.PointingHandCursor if new_hover else Qt.CursorShape.ArrowCursor)
             self.update()
 
-    def wheelEvent(self, event: QWheelEvent) -> None:
-        if self.pixmap is None:
+    def wheelEvent(self, event: QWheelEvent | None) -> None:
+        if self.pixmap is None or event is None:
             return
 
         # Position in image coordinates BEFORE zoom change, so we can keep it fixed
