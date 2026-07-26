@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from enum import StrEnum, Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping
 
 from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
+from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
+from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 
@@ -89,9 +91,11 @@ class IssuesModel(QStandardItemModel):
 
         Return `True` if any issues were found, `False` otherwise.
         """
+        issues: IntegrityCheckResult | DataCheckResult | None
+        categories: dict[IssuesTypes, FoundIssues]
         if self.state.integrity_issues_detected:
             issues = self.state.integrity_issues
-            assert issues is not None
+            assert isinstance(issues, IntegrityCheckResult)
             categories = {
                 IssuesTypes.DUPLICATES: issues.duplicates,
                 IssuesTypes.MISSING_PAGES: issues.missing_pages,
@@ -99,7 +103,7 @@ class IssuesModel(QStandardItemModel):
             return self._fill_model("Integrity issues", categories)
         elif self.state.data_issues_detected:
             issues = self.state.data_issues
-            assert issues is not None
+            assert isinstance(issues, DataCheckResult)
             categories = {
                 IssuesTypes.NAMES: issues.names_to_review,
                 IssuesTypes.AMBIGUOUS_ANSWERS: issues.ambiguous_answers_by_doc,
@@ -110,7 +114,7 @@ class IssuesModel(QStandardItemModel):
     def _fill_model(
         self,
         title: str,
-        categories: dict[IssuesTypes, FoundIssues],
+        categories: Mapping[IssuesTypes, FoundIssues],
     ):
         """
         Fill the model with detected issues.

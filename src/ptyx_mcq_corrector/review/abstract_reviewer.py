@@ -1,5 +1,5 @@
 """
-AbstractReviewer
+PixReviewer
 =================
 
 A PyQt5 widget that:
@@ -7,19 +7,14 @@ A PyQt5 widget that:
   2. Lets the user navigate inside (zoom, shift...)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
-from PyQt6.QtGui import QColor, QPixmap, QPen, QPainter, QImage, QWheelEvent
+from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent
 from PyQt6.QtWidgets import QWidget
 
-from ptyx_mcq.scan.data import Page, Answer
-
-from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
-from ptyx_mcq.scan.data.questions import CbxState
+from ptyx_mcq.scan.data import Page
 
 
 class Zoom:
@@ -37,7 +32,7 @@ class Transformation:
 
 @dataclass
 class Drag:
-    parent: CheckboxesReviewer
+    parent: "PixReviewer"
     is_started: bool = False
     start_pos: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
     original_shift: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
@@ -58,7 +53,7 @@ class Drag:
 # --------------------------------------------------------------------------
 
 
-class AbstractReviewer(QWidget):
+class PixReviewer(QWidget):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
     next_page_requested = pyqtSignal(name="next_page_requested")
@@ -121,7 +116,10 @@ class AbstractReviewer(QWidget):
     # ---- coordinate mapping (widget <-> original image) -----------------
 
     def _min_vertical_offset(self) -> int:
-        """The negative"""
+        """
+        The negative minimal value for the vertical offset, so that the bottom of the pixmap reaches the bottom of
+        the view.
+        """
         if (pixmap := self.pixmap) is None:
             return 0
         return self.height() - round(pixmap.height() * self._transform.zoom)
@@ -192,7 +190,7 @@ class AbstractReviewer(QWidget):
         self._recompute_transform()
         super().resizeEvent(event)
 
-    def _on_paint(self, painter: QPainter):
+    def _on_paint(self, painter: QPainter) -> None:
         """To subclass, to customize the actions on paint event."""
 
     def paintEvent(self, event):
@@ -217,17 +215,9 @@ class AbstractReviewer(QWidget):
 
     def mousePressEvent(self, event):
         self.setFocus()
-        if (
-            event.button() == Qt.MouseButton.RightButton
-        ):  # right-click drag to pan, left stays for toggling checkboxes
+        # right-click drag to pan, left stays for specific actions (like checking checkboxes)
+        if event.button() == Qt.MouseButton.RightButton:
             self._drag.start(start_pos=event.pos(), original_shift=self._user_transform.shift)
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
-
-        elif event.button() == Qt.MouseButton.LeftButton:
-            self._on_left_pressed(event)
-
-    def _on_left_pressed(self, event):
-        """To subclass, to customize the actions on left press event."""
 
     def mouseReleaseEvent(self, event):
         self._drag.end()
@@ -238,11 +228,6 @@ class AbstractReviewer(QWidget):
             delta = event.pos() - self._drag.start_pos
             self._user_transform.shift = self._drag.original_shift + delta
             self.recompute_and_update()
-            return
-        self._on_mouse_moved(event)
-
-    def _on_mouse_moved(self, event):
-        """To subclass, to customize the actions on mouse moved event."""
 
     def wheelEvent(self, event: QWheelEvent | None) -> None:
         if self.pixmap is None or event is None:

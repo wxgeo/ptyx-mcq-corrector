@@ -56,16 +56,11 @@ class IssuesViewer(QTreeView, EnhancedWidget):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
         print(type(self.window()))
-        self._model: IssuesModel | None = None
-
-    def setModel(self, model: IssuesModel) -> None:
-        super().setModel(model)
-        self._model = model
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         super().currentChanged(current, previous)
-        model = self._model
-        if model is not None:
+        if (model := self.model()) is not None:
+            assert isinstance(model, IssuesModel)
             item = model.itemFromIndex(current)
             if item is not None:
                 issue = item.data()
@@ -96,8 +91,8 @@ class IssuesViewer(QTreeView, EnhancedWidget):
         self.setCurrentIndex(self._navigate(self.indexAbove))
 
     def display_issues(self):
-        model = self._model
-        if model is not None:
+        if (model := self.model()) is not None:
+            assert isinstance(model, IssuesModel)
             model.update()
             self.setItemDelegate(IssueStateDelegate(self))
             self.expandAll()
