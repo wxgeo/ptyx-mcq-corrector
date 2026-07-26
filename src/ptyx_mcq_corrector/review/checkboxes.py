@@ -98,15 +98,15 @@ class CheckboxesReviewer(PixReviewer):
     def _on_paint(self, painter: QPainter) -> None:
         """Display the checkboxes, with a different style for each state."""
         for cb in self._checkboxes:
+            state = cb.state
+            assert state is not None
             wrect = self._image_rect_to_widget(cb.rect())
             color_panel = CbxColors.reviewed_colors if cb.answer.reviewed else CbxColors.default_colors
-            color: QColor = QColor(*color_panel.get(cb.state, (0, 0, 0)))  # type: ignore
+            color: QColor = QColor(*color_panel[state])
             thickness_panel = (
                 CbxThickness.reviewed_thicknesses if cb.answer.reviewed else CbxThickness.default_thicknesses
             )
-            thickness: int = thickness_panel.get(cb.state, 2)  # type: ignore
-            # if cb is self._hover:
-            #     print("Checkbox hovered.")
+            thickness: int = thickness_panel[state]
             hover_color = QColor(color.red(), color.green(), color.blue(), alpha=60)
             # noinspection PyTypeChecker
             painter.setBrush(hover_color if cb is self._hover else Qt.BrushStyle.NoBrush)

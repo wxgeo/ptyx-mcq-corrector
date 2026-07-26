@@ -6,7 +6,7 @@ from typing import Final
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
+from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView, QWidget
 
 from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
@@ -27,6 +27,8 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # new_session_signal = pyqtSignal(name="new_session_signal")
 
     scan_requested = pyqtSignal(name="scan_requested")
+
+    current_reviewer: QWidget | None
 
     def __init__(self, args: Namespace) -> None:
         super().__init__(parent=None)
@@ -70,6 +72,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_handler.scan_progress.connect(self.file_events_handler.on_scan_in_progress)
         self.checkboxes.previous_page_requested.connect(self.issuesView.move_to_previous_index)
         self.checkboxes.next_page_requested.connect(self.issuesView.move_to_next_index)
+        self.checkboxes.esc_requested.connect(self.issuesView.setFocus)
 
         print("PARENT:", self.dockWidgetContents.parent())
 
@@ -116,8 +119,10 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         match self.state.current_issue:
             case IssueInfo(type=IssuesTypes.AMBIGUOUS_ANSWERS):
                 index = 1
+                self.current_reviewer = self.checkboxes
             case _:
                 index = 0
+                self.current_reviewer = None
         self.main_area.setCurrentIndex(index)
 
     def _update_scan_ui(self) -> None:
@@ -131,6 +136,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         action.setText(text)
         action.setIcon(QIcon.fromTheme(mime))
         action.setEnabled(self.state.current_file is not None)
+        self.action_Reset_scan.setEnabled(
+            self.state.current_file is not None and self.state.scan_state != ScanState.IN_PROGRESS
+        )
 
     def _update_title(self) -> None:
         title = param.WINDOW_TITLE

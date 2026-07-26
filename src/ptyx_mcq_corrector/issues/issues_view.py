@@ -90,10 +90,20 @@ class IssuesViewer(QTreeView, EnhancedWidget):
     def move_to_previous_index(self) -> None:
         self.setCurrentIndex(self._navigate(self.indexAbove))
 
-    def display_issues(self):
+    def display_issues(self) -> None:
         if (model := self.model()) is not None:
             assert isinstance(model, IssuesModel)
             model.update()
             self.setItemDelegate(IssueStateDelegate(self))
             self.expandAll()
             self.show()
+
+    def keyPressEvent(self, event):
+        assert event is not None
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            # Give focus to the issue reviewer.
+            if (current_reviewer := self.main_window.current_reviewer) is not None:
+                current_reviewer.setFocus()
+
+        else:
+            super().keyPressEvent(event)

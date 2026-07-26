@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
-from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent, QPen
+from PyQt6.QtWidgets import QWidget, QStyleOptionFocusRect, QStyle
 
 from ptyx_mcq.scan.data import Page
 
@@ -22,6 +22,8 @@ class Zoom:
     MAX = 8.0
     STEP = 1.15  # multiplicative factor per wheel notch
     FULL_WIDTH = True
+    OVERLAPPING_PIXELS = 50  # in pixels: the overlap when scrolling using keyboard.
+    OVERLAPPING_RATIO = 0.2  # the overlapping ratio (between 0 and 1) when scrolling using keyboard.
 
 
 @dataclass
@@ -58,6 +60,7 @@ class PixReviewer(QWidget):
 
     next_page_requested = pyqtSignal(name="next_page_requested")
     previous_page_requested = pyqtSignal(name="previous_page_requested")
+    esc_requested = pyqtSignal(name="esc_requested")
 
     _cached_pixmap: QPixmap | None
     _page: Page | None
@@ -211,6 +214,14 @@ class PixReviewer(QWidget):
         disp_h = pixmap.height() * zoom
         target = QRect(shift.x(), shift.y(), int(disp_w), int(disp_h))
         painter.drawPixmap(target, pixmap)
+
+        if self.hasFocus():
+            option = QStyleOptionFocusRect()
+            option.initFrom(self)
+            option.rect = self.rect().adjusted(1, 1, -1, -1)
+            painter.setPen(QPen(QColor("cornflowerblue"), 1))
+            painter.drawRect(option.rect)
+
         self._on_paint(painter)
 
     def mousePressEvent(self, event):
@@ -265,7 +276,10 @@ class PixReviewer(QWidget):
         zoom = self._transform.zoom
         if zoom == 0:
             return
-        delta = QPoint(0, round(self.height()))
+        delta = QPoint(
+            0,
+            round(max(self.height() - Zoom.OVERLAPPING_PIXELS, (1 - Zoom.OVERLAPPING_RATIO) * self.height())),
+        )
         match event.key():
             case Qt.Key.Key_Down:
                 self._user_transform.shift -= delta
@@ -284,7 +298,9 @@ class PixReviewer(QWidget):
                 base_shift = self._transform.shift - self._user_transform.shift
                 self._user_transform.shift.setY(self._min_vertical_offset() - base_shift.y())
                 self.recompute_and_update()
-            case Qt.Key.Key_Escape | Qt.Key.Key_Space:
+            case Qt.Key.Key_Escape:
+                self.esc_requested.emit()
+            case Qt.Key.Key_Space:
                 self.reset_zoom()
             case _:
                 super().keyPressEvent(event)
