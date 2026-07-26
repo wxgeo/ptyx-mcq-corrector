@@ -36,12 +36,23 @@ class State:
     This includes recent files.
     """
 
+    __curent_file: Path | None
+    current_issue: IssueInfo | None
+    scan_state: ScanState
+    _cache: Cache
+
     def __init__(self, recent_files: list[Path] | None = None, current_file: Path | None = None):
         self._recent_files: list[Path] = recent_files or []
-        self._current_file: Path | None = current_file
-        self._cache: Cache = Cache()
-        self.scan_state: ScanState = ScanState.TO_DO
-        self.current_issue: IssueInfo | None = None
+        self._reset_state()
+
+    def _reset_state(self) -> None:
+        """
+        Reset the state, except for the recent files list.
+        """
+        self._current_file = None
+        self.current_issue = None
+        self.scan_state = ScanState.TO_DO
+        self._cache = Cache()
 
     @property
     def current_file_shortname(self) -> str:
@@ -127,11 +138,8 @@ class State:
     def close_file(self) -> None:
         if self._current_file is not None:
             self._remember_file(self._current_file)
-        # Reset state, except for recent directories list.
-        self._current_file = None
-        # Clear the cache, since the parser is now invalid.
-        # noinspection PyTypedDict
-        self._cache.clear()  # type: ignore
+        # Reset state, except for recent files list.
+        self._reset_state()
 
     def _remember_file(self, new_path: Path) -> None:
         # The same file must not appear twice in the list.
