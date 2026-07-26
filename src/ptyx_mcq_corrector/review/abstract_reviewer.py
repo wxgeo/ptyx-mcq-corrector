@@ -1,13 +1,17 @@
 """
-MCQCheckboxWidget
+AbstractReviewer
 =================
 
 A PyQt5 widget that:
   1. Displays a scanned MCQ (multiple-choice question) image.
-  2. Draws rectangles around detected checkboxes, overlaid on the scan.
-  3. Lets the user click a checkbox to toggle its checked / unchecked state,
-     redrawing it (color + checkmark) live.
+  2. Lets the user navigate inside (zoom, shift...)
 """
+
+
+# TODO:
+#  use arrows to navigate:
+#  - UP and DOWN to scroll the page vertically
+#  - LEFT and RIGHT to navigate between the issues
 
 from __future__ import annotations
 

@@ -4,8 +4,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
-from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 import ptyx_mcq_corrector.param as param

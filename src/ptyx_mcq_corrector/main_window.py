@@ -4,7 +4,7 @@ from base64 import urlsafe_b64encode
 from pathlib import Path
 from typing import Final
 
-from PyQt6.QtCore import QThread, QSize, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QIcon
 from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView
 

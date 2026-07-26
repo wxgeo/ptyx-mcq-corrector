@@ -1,17 +1,16 @@
 from typing import TYPE_CHECKING, Callable
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtGui import QStandardItemModel
 from PyQt6.QtWidgets import QTreeView, QAbstractItemView, QStyleOptionViewItem, QWidget
 from PyQt6.QtCore import Qt, QModelIndex, QSize
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
 from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
-from ptyx_mcq_corrector.issues.issues_model import IssueState, STATE_ROLE, IssueInfo, IssuesTypes, IssuesModel
+from ptyx_mcq_corrector.issues.issues_model import IssueState, STATE_ROLE, IssuesModel
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
+    pass
 
 
 class IssueColor:

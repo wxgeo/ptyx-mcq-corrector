@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import faulthandler
 
-faulthandler.enable()
 
 import signal
 import sys
@@ -21,6 +20,8 @@ from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.main_window import ICON_PATH, McqCorrectorMainWindow
 
 from ptyx_mcq_corrector.signal_wake_up import SignalWakeupHandler
+
+faulthandler.enable()
 
 
 def my_excepthook(
