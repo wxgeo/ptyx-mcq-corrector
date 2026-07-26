@@ -97,6 +97,7 @@ class FileEventsHandler(QObject):
             return False
         if (model := self.main_window.issuesView.model()) is None:
             return False
+        self.main_window.checkboxes.validate()
         model.validate(issue.index)
         self.main_window.issuesView.move_to_next_index()
         return True

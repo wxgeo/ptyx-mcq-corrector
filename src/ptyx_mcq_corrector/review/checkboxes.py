@@ -16,6 +16,12 @@ scanned form, auto-detects the checkbox squares with OpenCV, and opens the
 widget so you can click boxes to toggle them).
 """
 
+
+# TODO:
+#  use arrows to navigate:
+#  - UP and DOWN to scroll the page vertically
+#  - LEFT and RIGHT to navigate between the issues
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,6 +36,8 @@ from ptyx_mcq.scan.data import Page, Answer
 
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
 from ptyx_mcq.scan.data.questions import CbxState
+
+FULL_WIDTH = True
 
 
 class Zoom:
@@ -102,7 +110,9 @@ class Drag:
 class CheckboxesReviewer(QWidget):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
-    checkboxToggled = pyqtSignal(Checkbox, bool)  # (checkbox, new_checked_state)
+    checkbox_toggled = pyqtSignal(Checkbox, bool, name="checkbox_toggled")  # (checkbox, new_checked_state)
+    next_page_requested = pyqtSignal(name="next_page_requested")
+    previous_page_requested = pyqtSignal(name="previous_page_requested")
 
     UNCHECKED_COLOR = QColor(220, 40, 40)  # red outline
     CHECKED_COLOR = QColor(30, 160, 60)  # green outline
@@ -122,6 +132,7 @@ class CheckboxesReviewer(QWidget):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.setMinimumSize(200, 200)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.reset()
 
     def reset(self) -> None:
@@ -169,6 +180,11 @@ class CheckboxesReviewer(QWidget):
         self._recompute_transform()
         self.update()
 
+    def validate(self) -> None:
+        """Save the checkboxes' states changes on the drive."""
+        if (page := self.page) is not None:
+            page.pic.save_checkboxes_state(is_fix=True)
+
     # @property
     # def checkboxes(self) -> Iterator[Checkbox]:
     #     if (page := self.page) is None:
@@ -176,6 +192,12 @@ class CheckboxesReviewer(QWidget):
     #     return iter(Checkbox(answer, page) for question in page.pic for answer in question)
 
     # ---- coordinate mapping (widget <-> original image) -----------------
+
+    def _min_vertical_offset(self) -> int:
+        """The negative"""
+        if (pixmap := self.pixmap) is None:
+            return 0
+        return self.height() - round(pixmap.height() * self._transform.zoom)
 
     def _recompute_transform(self) -> None:
         if (pixmap := self.pixmap) is None:
@@ -185,13 +207,27 @@ class CheckboxesReviewer(QWidget):
             return
         vw, vh = self.width(), self.height()
         # Default scale so that the pixmap fits in the window.
-        base_scale = min(vw / pw, vh / ph)
+        if FULL_WIDTH:
+            base_scale = max(vw / pw, vh / ph)
+        else:
+            base_scale = min(vw / pw, vh / ph)
         self._transform.zoom = zoom = base_scale * self._user_transform.zoom
 
         disp_w, disp_h = pw * zoom, ph * zoom
-        # Default offset so that the pixmap is centered in the window.
-        base_offset = QPoint(int((vw - disp_w) / 2), int((vh - disp_h) / 2))
+        if FULL_WIDTH:
+            # Default offset so that the pixmap is centered in the window.
+            base_offset = QPoint(int((vw - disp_w) / 2), 0)
+        else:
+            # Default offset so that the pixmap is centered in the window.
+            base_offset = QPoint(int((vw - disp_w) / 2), int((vh - disp_h) / 2))
+        # The vertical offset must always be kept negative,
+        # since the top of the picture should never go below the top of the screen.
+        if (base_offset + self._user_transform.shift).y() > 0:
+            self._user_transform.shift.setY(-base_offset.y())
+        if (base_offset + self._user_transform.shift).y() < self._min_vertical_offset():
+            self._user_transform.shift.setY(self._min_vertical_offset() - base_offset.y())
         self._transform.shift = base_offset + self._user_transform.shift
+        print("offset:", self._transform.shift)
 
     def _widget_to_image(self, pos: QPoint) -> QPoint | None:
         zoom = self._transform.zoom
@@ -264,6 +300,7 @@ class CheckboxesReviewer(QWidget):
             painter.drawRect(wrect)
 
     def mousePressEvent(self, event):
+        self.setFocus()
         if (
             event.button() == Qt.MouseButton.RightButton
         ):  # right-click drag to pan, left stays for toggling checkboxes
@@ -277,7 +314,7 @@ class CheckboxesReviewer(QWidget):
             for cb in self._checkboxes:
                 if img_pt in cb:
                     cb.toggle()
-                    self.checkboxToggled.emit(cb, cb.is_checked)
+                    self.checkbox_toggled.emit(cb, cb.is_checked)
                     self.update()
                     break
 
@@ -334,3 +371,19 @@ class CheckboxesReviewer(QWidget):
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.reset_zoom()
+
+    def keyPressEvent(self, event):
+        zoom = self._transform.zoom
+        if zoom == 0:
+            return
+        delta = QPoint(0, round(self.height()))
+        if event.key() == Qt.Key.Key_Down:
+            self._user_transform.shift -= delta
+            self._recompute_transform()
+            self.update()
+        elif event.key() == Qt.Key.Key_Up:
+            self._user_transform.shift += delta
+            self._recompute_transform()
+            self.update()
+        else:
+            super().keyPressEvent(event)
