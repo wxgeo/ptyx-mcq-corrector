@@ -89,7 +89,7 @@ class FileEventsHandler(QObject):
         self.abort_event.set()
 
     def scan(self) -> None:
-        self.main_window.scan_request.emit()
+        self.main_window.scan_requested.emit()
 
     @update_ui
     def validate_issue(self) -> bool:

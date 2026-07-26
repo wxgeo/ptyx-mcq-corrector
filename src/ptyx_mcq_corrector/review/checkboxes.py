@@ -29,7 +29,7 @@ from typing import Optional, Iterator
 
 from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
-from PyQt6.QtGui import QColor, QPixmap, QPen, QPainter, QCursor, QImage, QWheelEvent
+from PyQt6.QtGui import QColor, QPixmap, QPen, QPainter, QCursor, QImage, QWheelEvent, QTransform
 from PyQt6.QtWidgets import QWidget
 
 from ptyx_mcq.scan.data import Page, Answer
@@ -146,8 +146,7 @@ class CheckboxesReviewer(QWidget):
 
     def reset_zoom(self) -> None:
         self._user_transform = Transformation()
-        self._recompute_transform()
-        self.update()
+        self.recompute_and_update()
 
     @property
     def pixmap(self) -> QPixmap | None:
@@ -177,8 +176,7 @@ class CheckboxesReviewer(QWidget):
         self.reset()
         self._page = page
         self._checkboxes = [Checkbox(answer, page) for question in page.pic for answer in question]
-        self._recompute_transform()
-        self.update()
+        self.recompute_and_update()
 
     def validate(self) -> None:
         """Save the checkboxes' states changes on the drive."""
@@ -215,7 +213,7 @@ class CheckboxesReviewer(QWidget):
 
         disp_w, disp_h = pw * zoom, ph * zoom
         if FULL_WIDTH:
-            # Default offset so that the pixmap is centered in the window.
+            # Default offset so that the pixmap is centered horizontally in the window.
             base_offset = QPoint(int((vw - disp_w) / 2), 0)
         else:
             # Default offset so that the pixmap is centered in the window.
@@ -228,6 +226,10 @@ class CheckboxesReviewer(QWidget):
             self._user_transform.shift.setY(self._min_vertical_offset() - base_offset.y())
         self._transform.shift = base_offset + self._user_transform.shift
         print("offset:", self._transform.shift)
+
+    def recompute_and_update(self) -> None:
+        self._recompute_transform()
+        self.update()
 
     def _widget_to_image(self, pos: QPoint) -> QPoint | None:
         zoom = self._transform.zoom
@@ -322,12 +324,13 @@ class CheckboxesReviewer(QWidget):
         self._drag.end()
 
     def mouseMoveEvent(self, event):
+        # Handle drag to move the picture.
         if self._drag.is_started:
             delta = event.pos() - self._drag.start_pos
             self._user_transform.shift = self._drag.original_shift + delta
-            self._recompute_transform()
-            self.update()
+            self.recompute_and_update()
             return
+        # Calculate whether the mouse arrow is hovering a checkbox.
         img_pt = self._widget_to_image(event.pos())
         new_hover = None
         if img_pt is not None:
@@ -377,13 +380,25 @@ class CheckboxesReviewer(QWidget):
         if zoom == 0:
             return
         delta = QPoint(0, round(self.height()))
-        if event.key() == Qt.Key.Key_Down:
-            self._user_transform.shift -= delta
-            self._recompute_transform()
-            self.update()
-        elif event.key() == Qt.Key.Key_Up:
-            self._user_transform.shift += delta
-            self._recompute_transform()
-            self.update()
-        else:
-            super().keyPressEvent(event)
+        match event.key():
+            case Qt.Key.Key_Down:
+                self._user_transform.shift -= delta
+                self.recompute_and_update()
+            case Qt.Key.Key_Up:
+                self._user_transform.shift += delta
+                self.recompute_and_update()
+            case Qt.Key.Key_Left:
+                self.previous_page_requested.emit()
+            case Qt.Key.Key_Right:
+                self.next_page_requested.emit()
+            case Qt.Key.Key_Home:
+                self._user_transform.shift.setY(0)
+                self.recompute_and_update()
+            case Qt.Key.Key_End:
+                base_shift = self._transform.shift - self._user_transform.shift
+                self._user_transform.shift.setY(self._min_vertical_offset() - base_shift.y())
+                self.recompute_and_update()
+            case Qt.Key.Key_Escape | Qt.Key.Key_Space:
+                self.reset_zoom()
+            case _:
+                super().keyPressEvent(event)

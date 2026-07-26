@@ -26,7 +26,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # restore_session_signal = pyqtSignal(name="restore_session_signal")
     # new_session_signal = pyqtSignal(name="new_session_signal")
 
-    scan_request = pyqtSignal(name="scan_request")
+    scan_requested = pyqtSignal(name="scan_requested")
 
     def __init__(self, args: Namespace) -> None:
         super().__init__(parent=None)
@@ -66,8 +66,10 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.connect_menu_signals()
         self.file_events_handler.finalize(args.path)
         self.scan_thread.start()
-        self.scan_request.connect(self.scan_handler.scan)
+        self.scan_requested.connect(self.scan_handler.scan)
         self.scan_handler.scan_progress.connect(self.file_events_handler.on_scan_in_progress)
+        self.checkboxes.previous_page_requested.connect(self.issuesView.move_to_previous_index)
+        self.checkboxes.next_page_requested.connect(self.issuesView.move_to_next_index)
 
         print("PARENT:", self.dockWidgetContents.parent())
 
