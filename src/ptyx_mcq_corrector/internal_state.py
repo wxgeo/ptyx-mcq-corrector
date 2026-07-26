@@ -83,7 +83,8 @@ class State:
     def data_issues(self) -> None | DataCheckResult:
         if self.scan_state != ScanState.DONE or (parser := self.parser) is None:
             return None
-        if self.integrity_issues is None or not self.integrity_issues.is_ok:
+        # Don't search for data issues if integrity issues has not been solved yet.
+        if (issues := self.integrity_issues) is None or not issues.is_ok:
             return None
         try:
             return self._cache["data_check"]
@@ -93,13 +94,11 @@ class State:
 
     @property
     def integrity_issues_detected(self) -> bool:
-        integrity_issues = self.integrity_issues
-        return integrity_issues is not None and not integrity_issues.is_ok
+        return (issues := self.integrity_issues) is not None and not issues.is_ok
 
     @property
     def data_issues_detected(self) -> bool:
-        data_issues = self.data_issues
-        return data_issues is not None and not data_issues.is_ok
+        return (issues := self.data_issues) is not None and not issues.is_ok
 
     @property
     def default_dir(self) -> Path:

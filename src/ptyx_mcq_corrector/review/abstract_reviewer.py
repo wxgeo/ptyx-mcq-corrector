@@ -7,12 +7,6 @@ A PyQt5 widget that:
   2. Lets the user navigate inside (zoom, shift...)
 """
 
-
-# TODO:
-#  use arrows to navigate:
-#  - UP and DOWN to scroll the page vertically
-#  - LEFT and RIGHT to navigate between the issues
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -27,45 +21,12 @@ from ptyx_mcq.scan.data import Page, Answer
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
 from ptyx_mcq.scan.data.questions import CbxState
 
-FULL_WIDTH = True
-
 
 class Zoom:
     MIN = 0.2
     MAX = 8.0
     STEP = 1.15  # multiplicative factor per wheel notch
-
-
-class Checkbox:
-    def __init__(self, answer: Answer, page: Page):
-        self.answer = answer
-        self.page = page
-
-    @property
-    def state(self) -> CbxState | None:
-        return self.answer.state
-
-    def __contains__(self, pos: QPoint) -> bool:
-        """Test if the given point is inside the checkbox rectangle of the given answer."""
-        x, y = pos.x(), pos.y()
-        y0, x0 = self.answer.position
-        size = self.page.pic.calibration_data.cell_size
-        return x0 <= x <= x0 + size and y0 <= y <= y0 + size
-
-    def rect(self) -> QRect:
-        """Return the rectangle of the checkbox rectangle of the given answer."""
-        y0, x0 = self.answer.position
-        size = self.page.pic.calibration_data.cell_size
-        return QRect(x0, y0, size, size)
-
-    @property
-    def is_checked(self) -> bool:
-        checked = self.answer.checked
-        assert checked is not None
-        return checked
-
-    def toggle(self) -> None:
-        self.answer.toggle_state()
+    FULL_WIDTH = True
 
 
 @dataclass
@@ -97,20 +58,14 @@ class Drag:
 # --------------------------------------------------------------------------
 
 
-class CheckboxesReviewer(QWidget):
+class AbstractReviewer(QWidget):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
-    checkbox_toggled = pyqtSignal(Checkbox, bool, name="checkbox_toggled")  # (checkbox, new_checked_state)
     next_page_requested = pyqtSignal(name="next_page_requested")
     previous_page_requested = pyqtSignal(name="previous_page_requested")
 
-    UNCHECKED_COLOR = QColor(220, 40, 40)  # red outline
-    CHECKED_COLOR = QColor(30, 160, 60)  # green outline
-
     _cached_pixmap: QPixmap | None
-    _hover: Checkbox | None
     _page: Page | None
-    _checkboxes: list[Checkbox]
     # The transformation applied by the user, using the mouse wheel and right-button dragging.
     _user_transform: Transformation
     # The global transformation, resulting of both the base transformation automatically calculated for the pixmap
@@ -127,9 +82,7 @@ class CheckboxesReviewer(QWidget):
 
     def reset(self) -> None:
         self._cached_pixmap = None
-        self._hover = None
         self._page = None
-        self._checkboxes = []
         self._transform = Transformation()
         self._user_transform = Transformation()
         self._drag = Drag(self)
@@ -147,16 +100,7 @@ class CheckboxesReviewer(QWidget):
             self._cached_pixmap = QPixmap.fromImage(QImage(str(self._page.pic.path)))
         return self._cached_pixmap
 
-    # def current_checkbox(self) -> Checkbox | None:
-    #     """Return the checkbox currently hovered, if any, else `None`."""
-    #     for cb in self._checkboxes:
-    #         pos = self._widget_to_image(self.mapFromGlobal(QCursor.pos()))
-    #         if pos is not None and pos in cb:
-    #             return cb
-    #     return None
-
-    # ---- public API ----------------------------------------------------
-
+    # ---- public API ---------------------------------------------------
     @property
     def page(self):
         return self._page
@@ -165,19 +109,14 @@ class CheckboxesReviewer(QWidget):
     def page(self, page: Page) -> None:
         self.reset()
         self._page = page
-        self._checkboxes = [Checkbox(answer, page) for question in page.pic for answer in question]
+        self._on_page_set()
         self.recompute_and_update()
 
-    def validate(self) -> None:
-        """Save the checkboxes' states changes on the drive."""
-        if (page := self.page) is not None:
-            page.pic.save_checkboxes_state(is_fix=True)
+    def _on_page_set(self) -> None:
+        """To subclass, to add actions when a new page is set."""
 
-    # @property
-    # def checkboxes(self) -> Iterator[Checkbox]:
-    #     if (page := self.page) is None:
-    #         return iter([])
-    #     return iter(Checkbox(answer, page) for question in page.pic for answer in question)
+    def validate(self) -> None:
+        """To subclass, to implement page validation."""
 
     # ---- coordinate mapping (widget <-> original image) -----------------
 
@@ -195,14 +134,14 @@ class CheckboxesReviewer(QWidget):
             return
         vw, vh = self.width(), self.height()
         # Default scale so that the pixmap fits in the window.
-        if FULL_WIDTH:
+        if Zoom.FULL_WIDTH:
             base_scale = max(vw / pw, vh / ph)
         else:
             base_scale = min(vw / pw, vh / ph)
         self._transform.zoom = zoom = base_scale * self._user_transform.zoom
 
         disp_w, disp_h = pw * zoom, ph * zoom
-        if FULL_WIDTH:
+        if Zoom.FULL_WIDTH:
             # Default offset so that the pixmap is centered horizontally in the window.
             base_offset = QPoint(int((vw - disp_w) / 2), 0)
         else:
@@ -253,6 +192,9 @@ class CheckboxesReviewer(QWidget):
         self._recompute_transform()
         super().resizeEvent(event)
 
+    def _on_paint(self, painter: QPainter):
+        """To subclass, to customize the actions on paint event."""
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -271,25 +213,7 @@ class CheckboxesReviewer(QWidget):
         disp_h = pixmap.height() * zoom
         target = QRect(shift.x(), shift.y(), int(disp_w), int(disp_h))
         painter.drawPixmap(target, pixmap)
-
-        # print(self._hover, len(list(self.checkboxes)))
-        for cb in self._checkboxes:
-            wrect = self._image_rect_to_widget(cb.rect())
-            color_panel = CbxColors.reviewed_colors if cb.answer.reviewed else CbxColors.default_colors
-            # noinspection PyTypeChecker
-            color: QColor = QColor(*color_panel.get(cb.state, (0, 0, 0)))
-            thickness_panel = (
-                CbxThickness.reviewed_thicknesses if cb.answer.reviewed else CbxThickness.default_thicknesses
-            )
-            # noinspection PyTypeChecker
-            thickness: int = thickness_panel.get(cb.state, 2)
-            # if cb is self._hover:
-            #     print("Checkbox hovered.")
-            hover_color = QColor(color.red(), color.green(), color.blue(), alpha=60)
-            # noinspection PyTypeChecker
-            painter.setBrush(hover_color if cb is self._hover else Qt.BrushStyle.NoBrush)
-            painter.setPen(QPen(color, thickness))
-            painter.drawRect(wrect)
+        self._on_paint(painter)
 
     def mousePressEvent(self, event):
         self.setFocus()
@@ -300,15 +224,10 @@ class CheckboxesReviewer(QWidget):
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
 
         elif event.button() == Qt.MouseButton.LeftButton:
-            img_pt = self._widget_to_image(event.pos())
-            if img_pt is None:
-                return
-            for cb in self._checkboxes:
-                if img_pt in cb:
-                    cb.toggle()
-                    self.checkbox_toggled.emit(cb, cb.is_checked)
-                    self.update()
-                    break
+            self._on_left_pressed(event)
+
+    def _on_left_pressed(self, event):
+        """To subclass, to customize the actions on left press event."""
 
     def mouseReleaseEvent(self, event):
         self._drag.end()
@@ -320,21 +239,13 @@ class CheckboxesReviewer(QWidget):
             self._user_transform.shift = self._drag.original_shift + delta
             self.recompute_and_update()
             return
-        # Calculate whether the mouse arrow is hovering a checkbox.
-        img_pt = self._widget_to_image(event.pos())
-        new_hover = None
-        if img_pt is not None:
-            for cb in self._checkboxes:
-                if img_pt in cb:
-                    new_hover = cb
-                    break
-        if new_hover != self._hover:
-            self._hover = new_hover
-            self.setCursor(Qt.CursorShape.PointingHandCursor if new_hover else Qt.CursorShape.ArrowCursor)
-            self.update()
+        self._on_mouse_moved(event)
 
-    def wheelEvent(self, event: QWheelEvent) -> None:
-        if self.pixmap is None:
+    def _on_mouse_moved(self, event):
+        """To subclass, to customize the actions on mouse moved event."""
+
+    def wheelEvent(self, event: QWheelEvent | None) -> None:
+        if self.pixmap is None or event is None:
             return
 
         # Position in image coordinates BEFORE zoom change, so we can keep it fixed
