@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssuesTypes
+from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssueType
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
 from ptyx_mcq_corrector.review.name import NameReviewer
 
@@ -152,10 +152,10 @@ class FileEventsHandler(QObject):
         # Be careful to select the reviewer only *AFTER* the state have been changed.
         reviewer = self.main_window.current_reviewer
         match issue.type:
-            case IssuesTypes.NAMES:
+            case IssueType.NAMES:
                 assert isinstance(reviewer, NameReviewer)
                 reviewer.page = doc.first_page
-            case IssuesTypes.AMBIGUOUS_ANSWERS:
+            case IssueType.AMBIGUOUS_ANSWERS:
                 assert isinstance(reviewer, CheckboxesReviewer)
                 page = doc.pages_index[issue.page]
                 reviewer.page = page

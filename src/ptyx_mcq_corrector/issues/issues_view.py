@@ -77,6 +77,7 @@ class IssuesViewer(QTreeView, EnhancedWidget):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
         self.setHeaderHidden(True)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         super().currentChanged(current, previous)

@@ -7,14 +7,14 @@ from typing import Final
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QLabel, QMainWindow, QAbstractItemView, QWidget
+from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget
 
 from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State, ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssuesTypes
+from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssueType
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.review.abstract_reviewer import PixReviewer
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
@@ -43,7 +43,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
         self.setupUi(self)
-        self.issuesView.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         # Management of the scan processes takes place in another thread, to keep the UI responsive.
         self.scan_handler = ScanManager(self)
@@ -51,16 +50,11 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_handler.moveToThread(self.scan_thread)
 
         self.issuesView.setModel(IssuesModel(self.state))
-        # self.issues_controller = IssuesController(self)
-        # self.issuesView.issue_selected.connect(self.file_events_handler.on_issue_selected)
-
-        # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
-        # print("created temporary directory", self.tmp_dir)
 
         # List all the different issues reviewers, with their index in their QStackedWidget parent.
-        self._issues_reviewers: dict[IssuesTypes, ReviewerInfo] = {
-            IssuesTypes.NAMES: ReviewerInfo(1, self.name_review),
-            IssuesTypes.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
+        self._issues_reviewers: dict[IssueType, ReviewerInfo] = {
+            IssueType.NAMES: ReviewerInfo(1, self.name_review),
+            IssueType.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
         }
 
         # -----------------

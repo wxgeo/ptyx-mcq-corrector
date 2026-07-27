@@ -25,7 +25,7 @@ class IssueState(Enum):
     FIXED = "fixed"
 
 
-class IssuesTypes(StrEnum):
+class IssueType(StrEnum):
     NAMES = "Names issues"
     AMBIGUOUS_ANSWERS = "Ambiguous answers"
     MISSING_PAGES = "Missing pages"
@@ -35,7 +35,7 @@ class IssuesTypes(StrEnum):
 @dataclass
 class IssueInfo:
     index: QModelIndex
-    type: IssuesTypes
+    type: IssueType
     doc: DocumentId
     page: PageNum | None
 
@@ -53,7 +53,7 @@ def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
 
 
 def _add_item(
-    parent: QStandardItem, title: str, issue_type: IssuesTypes, doc_id: DocumentId, page: PageNum | None
+    parent: QStandardItem, title: str, issue_type: IssueType, doc_id: DocumentId, page: PageNum | None
 ) -> QStandardItem:
     parent.appendRow(item := QStandardItem(title))
     item.setData(IssueInfo(index=item.index(), type=issue_type, doc=doc_id, page=page), ISSUE_ROLE)
@@ -62,7 +62,7 @@ def _add_item(
     return item
 
 
-def _add_category(root: QStandardItem, issues_type: IssuesTypes, results: FoundIssues) -> None:
+def _add_category(root: QStandardItem, issues_type: IssueType, results: FoundIssues) -> None:
     """
     Add the issues of the same type to the model.
     """
@@ -94,21 +94,21 @@ class IssuesModel(QStandardItemModel):
         Return `True` if any issues were found, `False` otherwise.
         """
         issues: IntegrityCheckResult | DataCheckResult | None
-        categories: dict[IssuesTypes, FoundIssues]
+        categories: dict[IssueType, FoundIssues]
         if self.state.integrity_issues_detected:
             issues = self.state.integrity_issues
             assert isinstance(issues, IntegrityCheckResult)
             categories = {
-                IssuesTypes.DUPLICATES: issues.duplicates,
-                IssuesTypes.MISSING_PAGES: issues.missing_pages,
+                IssueType.DUPLICATES: issues.duplicates,
+                IssueType.MISSING_PAGES: issues.missing_pages,
             }
             return self._fill_model("Integrity issues", categories)
         elif self.state.data_issues_detected:
             issues = self.state.data_issues
             assert isinstance(issues, DataCheckResult)
             categories = {
-                IssuesTypes.NAMES: issues.names_to_review,
-                IssuesTypes.AMBIGUOUS_ANSWERS: issues.ambiguous_answers_by_doc,
+                IssueType.NAMES: issues.names_to_review,
+                IssueType.AMBIGUOUS_ANSWERS: issues.ambiguous_answers_by_doc,
             }
             return self._fill_model("Data issues", categories)
         return False
@@ -116,7 +116,7 @@ class IssuesModel(QStandardItemModel):
     def _fill_model(
         self,
         title: str,
-        categories: Mapping[IssuesTypes, FoundIssues],
+        categories: Mapping[IssueType, FoundIssues],
     ):
         """
         Fill the model with detected issues.
