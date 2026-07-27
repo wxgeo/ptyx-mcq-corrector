@@ -12,7 +12,7 @@ from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
 from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssueType
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
-from ptyx_mcq_corrector.review.name import NameReviewer
+from ptyx_mcq_corrector.review.name import NameReviewer, student_to_text, student_from_text, NameStatus
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -92,6 +92,17 @@ class FileEventsHandler(QObject):
     def scan(self) -> None:
         self.main_window.scan_requested.emit()
 
+    def _name_suggestions(self) -> list[str]:
+        return sorted([student_to_text(student) for student in self.state.students])
+
+    def on_name_changed(self, text: str) -> None:
+        if text in self._name_suggestions():
+            assert isinstance(reviewer := self.main_window.current_reviewer, NameReviewer)
+            reviewer.page.pic.student = student_from_text(text)
+            self.main_window.name_editor.display_as(NameStatus.VALID)
+        else:
+            self.main_window.name_editor.display_as(NameStatus.INVALID)
+
     @update_ui
     def validate_issue(self) -> bool:
         if (issue := self.state.current_issue) is None:
@@ -156,11 +167,8 @@ class FileEventsHandler(QObject):
                 assert isinstance(reviewer, NameReviewer)
                 reviewer.page = doc.first_page
                 # Update suggestions
-                students = self.state.students
-                names = {student.name for student in students}
-                ids = {student.id for student in students}
-                suggestions = sorted(names | ids)
-                self.main_window.name_editor.set_suggestions(suggestions)
+                self.main_window.name_editor.set_suggestions(self._name_suggestions())
+                self.main_window.name_editor.set_current_student(reviewer.page.pic.student)
             case IssueType.AMBIGUOUS_ANSWERS:
                 assert isinstance(reviewer, CheckboxesReviewer)
                 page = doc.pages_index[issue.page]

@@ -9,30 +9,63 @@ A PyQt5 widget that:
      redrawing it (color + checkmark) live.
 """
 
+from enum import Enum
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, QStringListModel
+from PyQt6.QtCore import Qt, QStringListModel, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout, QCompleter
 
+
+from ptyx_mcq.scan.data.students import Student
+from ptyx_mcq.tools.parse_config.subtypes import StudentName, StudentId
+from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
+    pass
 
 # --------------------------------------------------------------------------
 # The main widget
 # --------------------------------------------------------------------------
 
 
+def student_to_text(student: Student) -> str:
+    if student.name:
+        return f"{student.name} ({student.id})"
+    return student.id
+
+
+def student_from_text(text: str) -> Student:
+    match text.split("("):
+        case name, id_:
+            assert name.endswith(" ")
+            assert id_.endswith(")")
+            return Student(name=StudentName(name[:-1]), id=StudentId(id_[:-1]))
+        case _:
+            raise ValueError(f"Invalid student name: {text}")
+
+
+class NameStatus(Enum):
+    VALID = "valid"
+    INVALID = "invalid"
+
+
 class NameEditor(QWidget):
-    def __init__(self, parent: "McqCorrectorMainWindow"):
+    name_changed = pyqtSignal(str, name="name_changed")
+
+    _styles = {
+        NameStatus.VALID: "QLineEdit { margin-left: 10px;background-color: #c5fcac;} QLabel {color: green;}",
+        NameStatus.INVALID: "QLineEdit { margin-left: 10px;background-color: #fcb1ac;} QLabel {color: red;}",
+    }
+
+    def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self.main_window: "McqCorrectorMainWindow" = parent
         self.name_editor = QLineEdit(self)
-        self.name_editor.setStyleSheet("QLineEdit { margin-left: 15px; margin-right: 20px;}")
+        # self.name_editor.setStyleSheet("QLineEdit { margin-left: 10px;}")
         label = QLabel("&Name/Id:")
-        label.setStyleSheet("QLabel {color: red;}")
+        # label.setStyleSheet("QLabel {color: red;}")
+        self.display_as(NameStatus.INVALID)
         label.setBuddy(self.name_editor)
         completer = QCompleter(self)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -43,36 +76,47 @@ class NameEditor(QWidget):
         layout.addWidget(label)
         layout.addWidget(self.name_editor)
 
+        self.name_editor.textChanged.connect(self.on_text_changed)
+
+    def display_as(self, status: NameStatus) -> None:
+        self.setStyleSheet(self._styles[status])
+
+    def on_text_changed(self, text: str) -> None:
+        self.name_changed.emit(text)
+
     def set_suggestions(self, names: list[str]):
         model = QStringListModel(names, self)
         assert (completer := self.name_editor.completer()) is not None
         completer.setModel(model)
 
+    def set_current_student(self, student: Student) -> None:
+        self.name_editor.setText(student_to_text(student))
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
             self.main_window.issuesView.setFocus()
+        else:
+            super().keyPressEvent(event)
 
 
 class NameReviewer(PixReviewer):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
-    _name: str
-    _id: str
+    # _student: Student
 
     FOCUS_RECT_COLOR: QColor = QColor("magenta")
-
-    def reset(self) -> None:
-        super().reset()
-        self._name = ...  # TODO
-        self._id = ...  # TODO
+    #
+    # def reset(self) -> None:
+    #     super().reset()
+    # self._student = Student(name=StudentName(""), id=StudentId(""))
 
     # ---- public API ----------------------------------------------------
 
-    def _on_page_set(self) -> None:
-        if (page := self.page) is not None:
-            self._name = ...  # TODO
+    # def _on_page_set(self) -> None:
+    #     if (page := self.page) is not None:
+    #         self._student = page.student
 
-    def validate(self) -> None:
-        """Save the checkboxes' states changes on the drive."""
-        if (page := self.page) is not None:
-            ...  # TODO: save name and id.
+    # def validate(self) -> None:
+    #     """Save the new student's name and id on the drive."""
+    #     if (page := self.page) is not None:
+    #         self.page.pic.student = self._student

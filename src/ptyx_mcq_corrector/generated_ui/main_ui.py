@@ -47,9 +47,27 @@ class Ui_MainWindow(object):
         spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.verticalLayout_4.addItem(spacerItem2)
         self.main_area.addWidget(self.blank)
-        self.name_review = NameReviewer()
+        self.name_review_container = QtWidgets.QWidget()
+        self.name_review_container.setObjectName("name_review_container")
+        self.verticalLayout_name = QtWidgets.QVBoxLayout(self.name_review_container)
+        self.verticalLayout_name.setObjectName("verticalLayout_name")
+        self.name_editor = NameEditor(parent=self.name_review_container)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.name_editor.sizePolicy().hasHeightForWidth())
+        self.name_editor.setSizePolicy(sizePolicy)
+        self.name_editor.setObjectName("name_editor")
+        self.verticalLayout_name.addWidget(self.name_editor)
+        self.name_review = NameReviewer(parent=self.name_review_container)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.name_review.sizePolicy().hasHeightForWidth())
+        self.name_review.setSizePolicy(sizePolicy)
         self.name_review.setObjectName("name_review")
-        self.main_area.addWidget(self.name_review)
+        self.verticalLayout_name.addWidget(self.name_review)
+        self.main_area.addWidget(self.name_review_container)
         self.checkboxes_review = CheckboxesReviewer()
         self.checkboxes_review.setObjectName("checkboxes_review")
         self.main_area.addWidget(self.checkboxes_review)
@@ -186,7 +204,7 @@ class Ui_MainWindow(object):
         self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
 from ptyx_mcq_corrector.issues.issues_view import IssuesViewer
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
-from ptyx_mcq_corrector.review.name import NameReviewer
+from ptyx_mcq_corrector.review.name import NameEditor, NameReviewer
 
 
 if __name__ == "__main__":

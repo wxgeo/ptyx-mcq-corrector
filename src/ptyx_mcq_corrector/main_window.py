@@ -7,7 +7,7 @@ from typing import Final
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QIcon
-from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget, QSizePolicy
+from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget
 
 from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
@@ -17,7 +17,6 @@ from ptyx_mcq_corrector.internal_state import State, ScanState
 from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssueType
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
-from ptyx_mcq_corrector.review.name import NameEditor
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
 
@@ -70,13 +69,6 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.status_label = QLabel(self)
         self.statusbar.addWidget(self.status_label)
 
-        # ------
-        spacer = QWidget(self)
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.toolBar.addWidget(spacer)
-        self.name_editor = NameEditor(self)
-        self._name_editor_action = self.toolBar.addWidget(self.name_editor)
-
         # -------------------
         #   Connect signals
         # -------------------
@@ -90,7 +82,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
                 reviewer.previous_page_requested.connect(self.issuesView.move_to_previous_index)
                 reviewer.next_page_requested.connect(self.issuesView.move_to_next_index)
                 reviewer.esc_requested.connect(self.issuesView.setFocus)
-
+        self.name_editor.name_changed.connect(self.file_events_handler.on_name_changed)
         print("PARENT:", self.dockWidgetContents.parent())
 
     def connect_menu_signals(self) -> None:
@@ -190,7 +182,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.issuesDock.hide()
         for action in [self.actionPrevious, self.actionNext, self.actionValidate]:
             action.setVisible(False)
-        self._name_editor_action.setVisible(False)
+        self.name_editor.setVisible(False)
 
     def _enable_review_ui(self):
         current_issue = self.state.current_issue
@@ -198,9 +190,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
             action.setVisible(True)
             action.setEnabled(current_issue is not None)
         is_name_issue = current_issue is not None and current_issue.type == IssueType.NAMES
-        if is_name_issue:
-            print("Yipee!")
-        self._name_editor_action.setVisible(is_name_issue)
+        self.name_editor.setVisible(is_name_issue)
         self.menuReview.setEnabled(True)
         model = self.issuesView.model()
         assert isinstance(model, IssuesModel)
