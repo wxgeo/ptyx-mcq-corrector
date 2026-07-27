@@ -9,18 +9,48 @@ A PyQt5 widget that:
      redrawing it (color + checkmark) live.
 """
 
-from __future__ import annotations
+from typing import TYPE_CHECKING
 
-
+from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout, QCompleter
 
+from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
 
-from ptyx_mcq_corrector.review.abstract_reviewer import PixReviewer
-
+if TYPE_CHECKING:
+    from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
 # --------------------------------------------------------------------------
 # The main widget
 # --------------------------------------------------------------------------
+
+
+class NameEditor(QWidget):
+    def __init__(self, parent: "McqCorrectorMainWindow"):
+        super().__init__(parent)
+        self.main_window: "McqCorrectorMainWindow" = parent
+        self.name_editor = QLineEdit(self)
+        self.name_editor.setStyleSheet("QLineEdit { margin-left: 15px; margin-right: 20px;}")
+        label = QLabel("&Name/Id:")
+        label.setStyleSheet("QLabel {color: red;}")
+        label.setBuddy(self.name_editor)
+        completer = QCompleter(self)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.name_editor.setCompleter(completer)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(label)
+        layout.addWidget(self.name_editor)
+
+    def set_suggestions(self, names: list[str]):
+        model = QStringListModel(names, self)
+        assert (completer := self.name_editor.completer()) is not None
+        completer.setModel(model)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.main_window.issuesView.setFocus()
 
 
 class NameReviewer(PixReviewer):

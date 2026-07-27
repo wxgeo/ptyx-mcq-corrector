@@ -155,6 +155,12 @@ class FileEventsHandler(QObject):
             case IssueType.NAMES:
                 assert isinstance(reviewer, NameReviewer)
                 reviewer.page = doc.first_page
+                # Update suggestions
+                students = self.state.students
+                names = {student.name for student in students}
+                ids = {student.id for student in students}
+                suggestions = sorted(names | ids)
+                self.main_window.name_editor.set_suggestions(suggestions)
             case IssueType.AMBIGUOUS_ANSWERS:
                 assert isinstance(reviewer, CheckboxesReviewer)
                 page = doc.pages_index[issue.page]

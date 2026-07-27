@@ -17,12 +17,12 @@ from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
 from PyQt6.QtGui import QColor, QPen, QPainter
 from PyQt6.QtWidgets import QWidget
 
-from ptyx_mcq.scan.data import Page, Answer
+from ptyx_mcq.scan.data.documents import Page
 
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
-from ptyx_mcq.scan.data.questions import CbxState
+from ptyx_mcq.scan.data.questions import CbxState, Answer
 
-from ptyx_mcq_corrector.review.abstract_reviewer import PixReviewer
+from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
 
 
 class Checkbox:

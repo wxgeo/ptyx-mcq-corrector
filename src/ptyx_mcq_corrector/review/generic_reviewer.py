@@ -14,7 +14,7 @@ from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
 from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent, QPen
 from PyQt6.QtWidgets import QWidget, QStyleOptionFocusRect
 
-from ptyx_mcq.scan.data import Page
+from ptyx_mcq.scan.data.documents import Page
 
 
 class Zoom:
