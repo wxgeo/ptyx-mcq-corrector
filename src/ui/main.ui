@@ -36,7 +36,7 @@
         <item>
          <widget class="QStackedWidget" name="main_area">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="blank">
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -98,7 +98,8 @@
             </item>
            </layout>
           </widget>
-          <widget class="CheckboxesReviewer" name="checkboxes"/>
+          <widget class="NameReviewer" name="name_review"/>
+          <widget class="CheckboxesReviewer" name="checkboxes_review"/>
          </widget>
         </item>
        </layout>
@@ -307,6 +308,12 @@
    <class>CheckboxesReviewer</class>
    <extends>QWidget</extends>
    <header>ptyx_mcq_corrector.review.checkboxes</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>NameReviewer</class>
+   <extends>QWidget</extends>
+   <header>ptyx_mcq_corrector.review.name</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

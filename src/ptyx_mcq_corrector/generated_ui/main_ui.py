@@ -47,9 +47,12 @@ class Ui_MainWindow(object):
         spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.verticalLayout_4.addItem(spacerItem2)
         self.main_area.addWidget(self.blank)
-        self.checkboxes = CheckboxesReviewer()
-        self.checkboxes.setObjectName("checkboxes")
-        self.main_area.addWidget(self.checkboxes)
+        self.name_review = NameReviewer()
+        self.name_review.setObjectName("name_review")
+        self.main_area.addWidget(self.name_review)
+        self.checkboxes_review = CheckboxesReviewer()
+        self.checkboxes_review.setObjectName("checkboxes_review")
+        self.main_area.addWidget(self.checkboxes_review)
         self.verticalLayout_2.addWidget(self.main_area)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout.addWidget(self.scrollArea)
@@ -151,7 +154,7 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionValidate)
 
         self.retranslateUi(MainWindow)
-        self.main_area.setCurrentIndex(0)
+        self.main_area.setCurrentIndex(1)
         self.action_Quit.triggered.connect(MainWindow.close) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -183,6 +186,7 @@ class Ui_MainWindow(object):
         self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
 from ptyx_mcq_corrector.issues.issues_view import IssuesViewer
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
+from ptyx_mcq_corrector.review.name import NameReviewer
 
 
 if __name__ == "__main__":

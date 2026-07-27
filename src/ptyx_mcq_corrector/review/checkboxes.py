@@ -70,6 +70,10 @@ class CheckboxesReviewer(PixReviewer):
     _hover: Checkbox | None
     _checkboxes: list[Checkbox]
 
+    CHECKBOX_HOVER_TRANSPARENCY: int = 120
+
+    assert 0 <= CHECKBOX_HOVER_TRANSPARENCY <= 255
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setMouseTracking(True)
@@ -107,7 +111,9 @@ class CheckboxesReviewer(PixReviewer):
                 CbxThickness.reviewed_thicknesses if cb.answer.reviewed else CbxThickness.default_thicknesses
             )
             thickness: int = thickness_panel[state]
-            hover_color = QColor(color.red(), color.green(), color.blue(), alpha=60)
+            hover_color = QColor(
+                color.red(), color.green(), color.blue(), alpha=self.CHECKBOX_HOVER_TRANSPARENCY
+            )
             # noinspection PyTypeChecker
             painter.setBrush(hover_color if cb is self._hover else Qt.BrushStyle.NoBrush)
             painter.setPen(QPen(color, thickness))

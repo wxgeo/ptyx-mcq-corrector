@@ -12,7 +12,7 @@ from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
 from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent, QPen
-from PyQt6.QtWidgets import QWidget, QStyleOptionFocusRect, QStyle
+from PyQt6.QtWidgets import QWidget, QStyleOptionFocusRect
 
 from ptyx_mcq.scan.data import Page
 
@@ -70,6 +70,9 @@ class PixReviewer(QWidget):
     # to fit the window, and the user defined transformation.
     _transform: Transformation
     _drag: Drag
+
+    BACKGROUND_COLOR: QColor = QColor(245, 245, 245)
+    FOCUS_RECT_COLOR: QColor = QColor("cornflowerblue")
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -199,7 +202,7 @@ class PixReviewer(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor(245, 245, 245))
+        painter.fillRect(self.rect(), self.BACKGROUND_COLOR)
 
         pixmap = self.pixmap
         if pixmap is None:
@@ -219,7 +222,7 @@ class PixReviewer(QWidget):
             option = QStyleOptionFocusRect()
             option.initFrom(self)
             option.rect = self.rect().adjusted(1, 1, -1, -1)
-            painter.setPen(QPen(QColor("cornflowerblue"), 1))
+            painter.setPen(QPen(self.FOCUS_RECT_COLOR, 1))
             painter.drawRect(option.rect)
 
         self._on_paint(painter)

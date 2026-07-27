@@ -11,6 +11,8 @@ import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
 from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssuesTypes
+from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
+from ptyx_mcq_corrector.review.name import NameReviewer
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -96,7 +98,7 @@ class FileEventsHandler(QObject):
             return False
         if (model := self.main_window.issuesView.model()) is None:
             return False
-        self.main_window.checkboxes.validate()
+        self.main_window.checkboxes_review.validate()
         model.validate(issue.index)
         self.main_window.issuesView.move_to_next_index()
         return True
@@ -145,12 +147,20 @@ class FileEventsHandler(QObject):
     @update_ui
     def on_issue_selected(self, issue: IssueInfo) -> bool:
         assert issue is not None
-        self.state.current_issue = issue
+        self.state.current_issue = issue  # To do at first!
         doc = self.state.parser.scan_data.used_docs_index[issue.doc]
+        # Be careful to select the reviewer only *AFTER* the state have been changed.
+        reviewer = self.main_window.current_reviewer
         match issue.type:
+            case IssuesTypes.NAMES:
+                assert isinstance(reviewer, NameReviewer)
+                reviewer.page = doc.first_page
             case IssuesTypes.AMBIGUOUS_ANSWERS:
+                assert isinstance(reviewer, CheckboxesReviewer)
                 page = doc.pages_index[issue.page]
-                self.main_window.checkboxes.page = page
+                reviewer.page = page
+        assert reviewer is not None
+        reviewer.setFocus()
         return True
 
     @update_ui

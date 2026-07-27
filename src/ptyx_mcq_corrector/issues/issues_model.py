@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
+ISSUE_ROLE = Qt.ItemDataRole.UserRole + 1
 STATE_ROLE = Qt.ItemDataRole.UserRole + 2
 
 
@@ -55,7 +56,7 @@ def _add_item(
     parent: QStandardItem, title: str, issue_type: IssuesTypes, doc_id: DocumentId, page: PageNum | None
 ) -> QStandardItem:
     parent.appendRow(item := QStandardItem(title))
-    item.setData(IssueInfo(index=item.index(), type=issue_type, doc=doc_id, page=page))
+    item.setData(IssueInfo(index=item.index(), type=issue_type, doc=doc_id, page=page), ISSUE_ROLE)
     # IssueState is used to apply the appropriate style.
     item.setData(IssueState.PENDING, STATE_ROLE)
     return item
@@ -84,6 +85,7 @@ class IssuesModel(QStandardItemModel):
         self.state = state
         self.current_doc: DocumentId | None = None
         self.current_page: PageNum | None = None
+        self.title: str = ""
 
     def update(self) -> bool:
         """
@@ -122,7 +124,8 @@ class IssuesModel(QStandardItemModel):
         Return `True` if any issues were found, `False` otherwise.
         """
         self.clear()
-        self.setHorizontalHeaderLabels([title])
+        self.title = title
+        # self.setHorizontalHeaderLabels([title])
         root = self.invisibleRootItem()  # top of the tree
         for issues_type, results in categories.items():
             assert root is not None

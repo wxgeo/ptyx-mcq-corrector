@@ -3,11 +3,16 @@ from typing import TYPE_CHECKING, Callable
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QTreeView, QAbstractItemView, QStyleOptionViewItem, QWidget
 from PyQt6.QtCore import Qt, QModelIndex, QSize
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor, QPalette, QFont
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
 from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
-from ptyx_mcq_corrector.issues.issues_model import IssueState, STATE_ROLE, IssuesModel
+from ptyx_mcq_corrector.issues.issues_model import (
+    IssueState,
+    STATE_ROLE,
+    IssuesModel,
+    ISSUE_ROLE,
+)
 
 if TYPE_CHECKING:
     pass
@@ -16,6 +21,15 @@ if TYPE_CHECKING:
 class IssueColor:
     PENDING = QColor(200, 30, 30)
     FIXED = QColor(90, 140, 90)
+
+
+def index_level(index: QModelIndex) -> int:
+    level = 0
+    parent = index.parent()
+    while parent.isValid():
+        level += 1
+        parent = parent.parent()
+    return level
 
 
 class IssueStateDelegate(QStyledItemDelegate):
@@ -47,6 +61,13 @@ class IssueStateDelegate(QStyledItemDelegate):
             option.icon = self._fixed_icon
             option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
 
+        font = QFont(option.font)  # make a copy to not mutate used font!
+        if index_level(index) == 0:
+            font.setBold(True)
+        if index_level(index) == 1:
+            font.setItalic(True)
+        option.font = font
+
         # Give the icon some room if one was set
         if not option.icon.isNull():
             option.decorationSize = QSize(16, 16)
@@ -55,7 +76,7 @@ class IssueStateDelegate(QStyledItemDelegate):
 class IssuesViewer(QTreeView, EnhancedWidget):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
-        print(type(self.window()))
+        self.setHeaderHidden(True)
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         super().currentChanged(current, previous)
@@ -63,7 +84,7 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             assert isinstance(model, IssuesModel)
             item = model.itemFromIndex(current)
             if item is not None:
-                issue = item.data()
+                issue = item.data(ISSUE_ROLE)
                 if issue is not None:
                     self.main_window.file_events_handler.on_issue_selected(issue=issue)
 
@@ -104,6 +125,9 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             # Give focus to the issue reviewer.
             if (current_reviewer := self.main_window.current_reviewer) is not None:
                 current_reviewer.setFocus()
-
+        elif event.key() == Qt.Key.Key_Right:
+            self.move_to_next_index()
+        elif event.key() == Qt.Key.Key_Left:
+            self.move_to_previous_index()
         else:
             super().keyPressEvent(event)

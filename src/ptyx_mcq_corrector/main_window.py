@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from argparse import Namespace
 from base64 import urlsafe_b64encode
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
@@ -13,8 +14,9 @@ from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import State, ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssueInfo, IssuesTypes
+from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssuesTypes
 from ptyx_mcq_corrector.param import ICON_PATH
+from ptyx_mcq_corrector.review.abstract_reviewer import PixReviewer
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
 
@@ -22,13 +24,17 @@ def path_hash(path: Path | str) -> str:
     return urlsafe_b64encode(hash(str(path)).to_bytes(8, signed=True)).decode("ascii").rstrip("=")
 
 
+@dataclass
+class ReviewerInfo:
+    index: int
+    reviewer: QWidget
+
+
 class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
     # restore_session_signal = pyqtSignal(name="restore_session_signal")
     # new_session_signal = pyqtSignal(name="new_session_signal")
 
     scan_requested = pyqtSignal(name="scan_requested")
-
-    current_reviewer: QWidget | None
 
     def __init__(self, args: Namespace) -> None:
         super().__init__(parent=None)
@@ -51,6 +57,12 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # self.tmp_dir = Path(mkdtemp(prefix="mcq-editor-"))
         # print("created temporary directory", self.tmp_dir)
 
+        # List all the different issues reviewers, with their index in their QStackedWidget parent.
+        self._issues_reviewers: dict[IssuesTypes, ReviewerInfo] = {
+            IssuesTypes.NAMES: ReviewerInfo(1, self.name_review),
+            IssuesTypes.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
+        }
+
         # -----------------
         # Customize display
         # -----------------
@@ -70,9 +82,11 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_thread.start()
         self.scan_requested.connect(self.scan_handler.scan)
         self.scan_handler.scan_progress.connect(self.file_events_handler.on_scan_in_progress)
-        self.checkboxes.previous_page_requested.connect(self.issuesView.move_to_previous_index)
-        self.checkboxes.next_page_requested.connect(self.issuesView.move_to_next_index)
-        self.checkboxes.esc_requested.connect(self.issuesView.setFocus)
+        for reviewer_info in self._issues_reviewers.values():
+            if isinstance(reviewer := reviewer_info.reviewer, PixReviewer):
+                reviewer.previous_page_requested.connect(self.issuesView.move_to_previous_index)
+                reviewer.next_page_requested.connect(self.issuesView.move_to_next_index)
+                reviewer.esc_requested.connect(self.issuesView.setFocus)
 
         print("PARENT:", self.dockWidgetContents.parent())
 
@@ -115,14 +129,17 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self._update_main_area()
         self._update_status_message()  # TODO
 
+    @property
+    def current_reviewer(self) -> QWidget | None:
+        if (issue := self.state.current_issue) is None:
+            return None
+        return self._issues_reviewers[issue.type].reviewer
+
     def _update_main_area(self) -> None:
-        match self.state.current_issue:
-            case IssueInfo(type=IssuesTypes.AMBIGUOUS_ANSWERS):
-                index = 1
-                self.current_reviewer = self.checkboxes
-            case _:
-                index = 0
-                self.current_reviewer = None
+        if (issue := self.state.current_issue) is None:
+            index = 0
+        else:
+            index = self._issues_reviewers[issue.type].index
         self.main_area.setCurrentIndex(index)
 
     def _update_scan_ui(self) -> None:
@@ -176,6 +193,9 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
             action.setVisible(True)
             action.setEnabled(self.state.current_issue is not None)
         self.menuReview.setEnabled(True)
+        model = self.issuesView.model()
+        assert isinstance(model, IssuesModel)
+        self.issuesDock.setWindowTitle(model.title)
         self.issuesDock.show()
 
     def _update_review_ui(self) -> None:
