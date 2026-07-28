@@ -192,9 +192,9 @@ class FileEventsHandler(QObject):
             == StandardButton.Yes
         ):
             self.state.scan_state = ScanState.TO_DO
-            rmtree(folder := (self.state.current_file.parent / "out"))
+            # rmtree(folder := (self.state.current_file.parent / "out"))
             self.state.parser.scan_data.reset()
-            print(f"Folder '{folder}' was removed.")
+            print(f"Folder '{self.state.current_file.parent / 'out'}' was removed.")
             return True
         return False
 
