@@ -19,7 +19,6 @@ from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout, QCompleter
 
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import StudentName, StudentId
-from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
 
 if TYPE_CHECKING:

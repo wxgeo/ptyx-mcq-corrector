@@ -8,7 +8,6 @@ A PyQt5 widget that:
 """
 
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
@@ -126,9 +125,6 @@ class PixReviewer(QWidget):
 
     def _on_page_set(self) -> None:
         """To subclass, to add actions when a new page is set."""
-
-    def validate(self) -> None:
-        """To subclass, to implement page validation."""
 
     # ---- coordinate mapping (widget <-> original image) -----------------
 

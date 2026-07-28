@@ -1,7 +1,6 @@
 import threading
 from functools import wraps
 from pathlib import Path
-from shutil import rmtree
 from typing import TYPE_CHECKING, Final, Callable
 
 from PyQt6.QtCore import QObject
@@ -10,7 +9,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.internal_state import ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssueType
+from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssueType, IssuesModel
 from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
 from ptyx_mcq_corrector.review.name import NameReviewer, student_to_text, student_from_text, NameStatus
 
@@ -100,6 +99,7 @@ class FileEventsHandler(QObject):
             assert isinstance(reviewer := self.main_window.current_reviewer, NameReviewer)
             reviewer.page.pic.student = student_from_text(text)
             self.main_window.name_editor.display_as(NameStatus.VALID)
+            self.validate_issue()
         else:
             self.main_window.name_editor.display_as(NameStatus.INVALID)
 
@@ -109,9 +109,18 @@ class FileEventsHandler(QObject):
             return False
         if (model := self.main_window.issuesView.model()) is None:
             return False
-        self.main_window.checkboxes_review.validate()
         model.validate(issue.index)
         self.main_window.issuesView.move_to_next_index()
+        return True
+
+    @update_ui
+    def validate_all_answers(self) -> bool:
+        if (model := self.main_window.issuesView.model()) is None:
+            return False
+        assert isinstance(model, IssuesModel)
+        for issue in model.issues:
+            if issue.type == IssueType.AMBIGUOUS_ANSWERS:
+                issue.validate_state(self.state.parser.scan_data)
         return True
 
     # ---------------------
@@ -159,7 +168,7 @@ class FileEventsHandler(QObject):
     def on_issue_selected(self, issue: IssueInfo) -> bool:
         assert issue is not None
         self.state.current_issue = issue  # To do at first!
-        doc = self.state.parser.scan_data.used_docs_index[issue.doc]
+        doc = self.state.parser.scan_data.used_docs_index[issue.doc_id]
         # Be careful to select the reviewer only *AFTER* the state have been changed.
         reviewer = self.main_window.current_reviewer
         match issue.type:
@@ -171,7 +180,7 @@ class FileEventsHandler(QObject):
                 self.main_window.name_editor.set_current_student(reviewer.page.pic.student)
             case IssueType.AMBIGUOUS_ANSWERS:
                 assert isinstance(reviewer, CheckboxesReviewer)
-                page = doc.pages_index[issue.page]
+                page = doc.pages_index[issue.page_num]
                 reviewer.page = page
         assert reviewer is not None
         reviewer.setFocus()

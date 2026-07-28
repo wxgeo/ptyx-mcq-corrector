@@ -6,9 +6,8 @@ from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
-
+from ptyx_mcq.scan.data.scan_data import ScanData
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
-
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.internal_state import State
@@ -36,8 +35,18 @@ class IssueType(StrEnum):
 class IssueInfo:
     index: QModelIndex
     type: IssueType
-    doc: DocumentId
-    page: PageNum | None
+    doc_id: DocumentId
+    page_num: PageNum | None
+
+    def validate_state(self, scan_data: ScanData) -> None:
+        """Save the current state on the drive."""
+        doc = scan_data.used_docs_index[self.doc_id]
+        if self.type == IssueType.AMBIGUOUS_ANSWERS:
+            # Save the checkboxes' states changes on the drive.
+            assert (page_num := self.page_num) is not None
+            page = doc.pages_index[page_num]
+            page.pic.save_checkboxes_state(is_fix=True)
+        # No need to validate name change, since it is automatically saved.
 
 
 def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
@@ -56,7 +65,7 @@ def _add_item(
     parent: QStandardItem, title: str, issue_type: IssueType, doc_id: DocumentId, page: PageNum | None
 ) -> QStandardItem:
     parent.appendRow(item := QStandardItem(title))
-    item.setData(IssueInfo(index=item.index(), type=issue_type, doc=doc_id, page=page), ISSUE_ROLE)
+    item.setData(IssueInfo(index=item.index(), type=issue_type, doc_id=doc_id, page_num=page), ISSUE_ROLE)
     # IssueState is used to apply the appropriate style.
     item.setData(IssueState.PENDING, STATE_ROLE)
     return item
@@ -136,5 +145,20 @@ class IssuesModel(QStandardItemModel):
         if index.flags() & Qt.ItemFlag.ItemIsSelectable:
             item = self.itemFromIndex(index)
             if item is not None:
+                # Mark the issue as fixed.
                 item.setData(IssueState.FIXED, STATE_ROLE)
-                # TODO: save answers states.
+                # Save the current state on the drive.
+                issue: IssueInfo = item.data(ISSUE_ROLE)
+                assert (parser := self.state.parser) is not None
+                issue.validate_state(parser.scan_data)
+
+    @property
+    def issues(self) -> list[IssueInfo]:
+        issues: list[IssueInfo] = []
+        for row in range(self.rowCount()):
+            item = self.item(row)
+            assert item is not None
+            issue: IssueInfo | None = item.data(ISSUE_ROLE)
+            if isinstance(issue, IssueInfo):
+                issues.append(issue)
+        return issues

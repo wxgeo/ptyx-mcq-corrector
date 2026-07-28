@@ -92,11 +92,6 @@ class CheckboxesReviewer(PixReviewer):
         if (page := self.page) is not None:
             self._checkboxes = [Checkbox(answer, page) for question in page.pic for answer in question]
 
-    def validate(self) -> None:
-        """Save the checkboxes' states changes on the drive."""
-        if (page := self.page) is not None:
-            page.pic.save_checkboxes_state(is_fix=True)
-
     # ---- Qt events -------------------------------------------------------
 
     def _on_paint(self, painter: QPainter) -> None:
