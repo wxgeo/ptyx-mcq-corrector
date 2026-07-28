@@ -8,22 +8,29 @@ A PyQt5 widget that:
 """
 
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QPoint, Qt, QRect
-from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent, QPen
+from PyQt6.QtGui import QColor, QPixmap, QPainter, QImage, QWheelEvent, QPen, QCursor
 from PyQt6.QtWidgets import QWidget, QStyleOptionFocusRect
 
 from ptyx_mcq.scan.data.documents import Page
 
 
-class Zoom:
+class ZoomConfig:
     MIN = 0.2
     MAX = 8.0
     STEP = 1.15  # multiplicative factor per wheel notch
     FULL_WIDTH = True
     OVERLAPPING_PIXELS = 50  # in pixels: the overlap when scrolling using keyboard.
     OVERLAPPING_RATIO = 0.2  # the overlapping ratio (between 0 and 1) when scrolling using keyboard.
+
+
+assert 0 <= ZoomConfig.MIN <= ZoomConfig.MAX
+assert 1 <= ZoomConfig.STEP
+assert 0 <= ZoomConfig.OVERLAPPING_RATIO <= 1
+assert 0 <= ZoomConfig.OVERLAPPING_PIXELS
 
 
 @dataclass
@@ -88,8 +95,12 @@ class PixReviewer(QWidget):
         self._user_transform = Transformation()
         self._drag = Drag(self)
 
-    def reset_zoom(self) -> None:
+    def reset_transform(self) -> None:
         self._user_transform = Transformation()
+        self.recompute_and_update()
+
+    def reset_zoom(self) -> None:
+        self._user_transform.zoom = 1
         self.recompute_and_update()
 
     @property
@@ -138,14 +149,15 @@ class PixReviewer(QWidget):
             return
         vw, vh = self.width(), self.height()
         # Default scale so that the pixmap fits in the window.
-        if Zoom.FULL_WIDTH:
+        if ZoomConfig.FULL_WIDTH:
             base_scale = max(vw / pw, vh / ph)
         else:
             base_scale = min(vw / pw, vh / ph)
+        self._user_transform.zoom = min(max(self._user_transform.zoom, ZoomConfig.MIN), ZoomConfig.MAX)
         self._transform.zoom = zoom = base_scale * self._user_transform.zoom
 
         disp_w, disp_h = pw * zoom, ph * zoom
-        if Zoom.FULL_WIDTH:
+        if ZoomConfig.FULL_WIDTH:
             # Default offset so that the pixmap is centered horizontally in the window.
             base_offset = QPoint(int((vw - disp_w) / 2), 0)
         else:
@@ -246,17 +258,18 @@ class PixReviewer(QWidget):
     def wheelEvent(self, event: QWheelEvent | None) -> None:
         if self.pixmap is None or event is None:
             return
-
-        # Position in image coordinates BEFORE zoom change, so we can keep it fixed
-        old_img_pt = self._widget_to_image(event.position().toPoint())
-
         angle = event.angleDelta().y()
-        if angle > 0:
-            self._user_transform.zoom = min(self._user_transform.zoom * Zoom.STEP, Zoom.MAX)
-        elif angle < 0:
-            self._user_transform.zoom = max(self._user_transform.zoom / Zoom.STEP, Zoom.MIN)
-        else:
+        self._user_transform.shift += QPoint(0, angle)
+        self.recompute_and_update()
+        event.accept()
+
+    def zoom(self, factor: float) -> None:
+        if self.pixmap is None:
             return
+        # Position in image coordinates BEFORE zoom change, so we can keep it fixed
+        old_img_pt = self._widget_to_image(QCursor.pos())
+
+        self._user_transform.zoom *= factor
 
         self._recompute_transform()
 
@@ -264,16 +277,15 @@ class PixReviewer(QWidget):
             # Recompute where that same image point now lands in widget coords,
             # and adjust pan so it stays under the cursor.
             new_widget_pt = self._image_to_widget_point(old_img_pt)
-            delta = event.position().toPoint() - new_widget_pt
+            delta = QCursor.pos() - new_widget_pt
             self._user_transform.shift += delta
             self._recompute_transform()
 
         self.update()
-        event.accept()
 
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.reset_zoom()
+            self.reset_transform()
 
     def keyPressEvent(self, event):
         zoom = self._transform.zoom
@@ -281,7 +293,12 @@ class PixReviewer(QWidget):
             return
         delta = QPoint(
             0,
-            round(max(self.height() - Zoom.OVERLAPPING_PIXELS, (1 - Zoom.OVERLAPPING_RATIO) * self.height())),
+            round(
+                max(
+                    self.height() - ZoomConfig.OVERLAPPING_PIXELS,
+                    (1 - ZoomConfig.OVERLAPPING_RATIO) * self.height(),
+                )
+            ),
         )
         match event.key():
             case Qt.Key.Key_Down:
@@ -304,6 +321,12 @@ class PixReviewer(QWidget):
             case Qt.Key.Key_Escape:
                 self.esc_requested.emit()
             case Qt.Key.Key_Space:
+                self.reset_transform()
+            case Qt.Key.Key_Minus:
+                self.zoom(1 / ZoomConfig.STEP)
+            case Qt.Key.Key_Plus:
+                self.zoom(ZoomConfig.STEP)
+            case Qt.Key.Key_Equal:
                 self.reset_zoom()
             case _:
                 super().keyPressEvent(event)
