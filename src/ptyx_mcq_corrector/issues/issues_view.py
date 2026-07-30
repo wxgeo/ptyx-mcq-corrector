@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Callable
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QTreeView, QAbstractItemView, QStyleOptionViewItem, QWidget
 from PyQt6.QtCore import Qt, QModelIndex, QSize
-from PyQt6.QtGui import QColor, QPalette, QFont
+from PyQt6.QtGui import QColor, QPalette, QFont, QKeyEvent
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
-from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
+# from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.issues.issues_model import (
     IssueState,
     STATE_ROLE,
@@ -14,8 +14,9 @@ from ptyx_mcq_corrector.issues.issues_model import (
     ISSUE_ROLE,
 )
 
+
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.review.page.page_reviewer import PageReviewer
 
 
 class IssueColor:
@@ -73,9 +74,10 @@ class IssueStateDelegate(QStyledItemDelegate):
             option.decorationSize = QSize(16, 16)
 
 
-class IssuesViewer(QTreeView, EnhancedWidget):
+class IssuesViewer(QTreeView):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
+        self._parent: "PageReviewer" = parent  # type:ignore
         self.setHeaderHidden(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
@@ -87,7 +89,7 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             if item is not None:
                 issue = item.data(ISSUE_ROLE)
                 if issue is not None:
-                    self.main_window.file_events_handler.on_issue_selected(issue=issue)
+                    self._parent.on_issue_selected(issue=issue)
 
     def moveCursor(
         self, cursor_action: QAbstractItemView.CursorAction, modifiers: Qt.KeyboardModifier
@@ -118,14 +120,13 @@ class IssuesViewer(QTreeView, EnhancedWidget):
             model.update()
             self.setItemDelegate(IssueStateDelegate(self))
             self.expandAll()
-            self.show()
+            # self.show()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
         assert event is not None
         if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
             # Give focus to the issue reviewer.
-            if (current_reviewer := self.main_window.current_reviewer) is not None:
-                current_reviewer.setFocus()
+            self._parent.setFocus()
         elif event.key() == Qt.Key.Key_Right:
             self.move_to_next_index()
         elif event.key() == Qt.Key.Key_Left:

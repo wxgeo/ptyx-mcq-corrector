@@ -1,17 +1,14 @@
-from dataclasses import dataclass
-from enum import StrEnum, Enum
-from typing import TYPE_CHECKING, Mapping
+from enum import Enum
+from typing import Mapping
 
 from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
-from ptyx_mcq.scan.data.scan_data import ScanData
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 
-if TYPE_CHECKING:
-    from ptyx_mcq_corrector.internal_state import State
-
+from ptyx_mcq_corrector.internal_state import State
+from ptyx_mcq_corrector.issues.issue_info import IssueType, IssueInfo
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
@@ -22,31 +19,6 @@ STATE_ROLE = Qt.ItemDataRole.UserRole + 2
 class IssueState(Enum):
     PENDING = "pending"
     FIXED = "fixed"
-
-
-class IssueType(StrEnum):
-    NAMES = "Names issues"
-    AMBIGUOUS_ANSWERS = "Ambiguous answers"
-    MISSING_PAGES = "Missing pages"
-    DUPLICATES = "Duplicates"
-
-
-@dataclass
-class IssueInfo:
-    index: QModelIndex
-    type: IssueType
-    doc_id: DocumentId
-    page_num: PageNum | None
-
-    def validate_state(self, scan_data: ScanData) -> None:
-        """Save the current state on the drive."""
-        doc = scan_data.used_docs_index[self.doc_id]
-        if self.type == IssueType.AMBIGUOUS_ANSWERS:
-            # Save the checkboxes' states changes on the drive.
-            assert (page_num := self.page_num) is not None
-            page = doc.pages_index[page_num]
-            page.pic.save_checkboxes_state(is_fix=True)
-        # No need to validate name change, since it is automatically saved.
 
 
 def _add_header(parent: QStandardItem, title: str) -> QStandardItem:
@@ -141,16 +113,20 @@ class IssuesModel(QStandardItemModel):
             _add_category(root, issues_type, results)
         return True
 
-    def validate(self, index: QModelIndex) -> None:
+    def validate(self, index: QModelIndex) -> bool:
         if index.flags() & Qt.ItemFlag.ItemIsSelectable:
             item = self.itemFromIndex(index)
             if item is not None:
-                # Mark the issue as fixed.
-                item.setData(IssueState.FIXED, STATE_ROLE)
-                # Save the current state on the drive.
-                issue: IssueInfo = item.data(ISSUE_ROLE)
                 assert (parser := self.state.parser) is not None
-                issue.validate_state(parser.scan_data)
+                issue: IssueInfo = item.data(ISSUE_ROLE)
+                if issue.validate_state(parser.scan_data):
+                    # Mark the issue as fixed.
+                    item.setData(IssueState.FIXED, STATE_ROLE)
+                    print("Issue marked as fixed.")
+                    return True
+                else:
+                    print("Issue does not seem to be fixed yet.")
+        return False
 
     @property
     def issues(self) -> list[IssueInfo]:

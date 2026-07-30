@@ -1,5 +1,5 @@
 """
-PixReviewer
+PageDisplayer
 =================
 
 A PyQt5 widget that:
@@ -40,7 +40,7 @@ class Transformation:
 
 @dataclass
 class Drag:
-    parent: "PixReviewer"
+    parent: "PageDisplayer"
     is_started: bool = False
     start_pos: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
     original_shift: QPoint = field(default_factory=lambda: QPoint(0, 0))  # QPoint is mutable!
@@ -61,7 +61,7 @@ class Drag:
 # --------------------------------------------------------------------------
 
 
-class PixReviewer(QWidget):
+class PageDisplayer(QWidget):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
     next_page_requested = pyqtSignal(name="next_page_requested")
@@ -78,13 +78,13 @@ class PixReviewer(QWidget):
     _drag: Drag
 
     BACKGROUND_COLOR: QColor = QColor(245, 245, 245)
-    FOCUS_RECT_COLOR: QColor = QColor("cornflowerblue")
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.setMinimumSize(200, 200)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.focus_rect_color: QColor = QColor("cornflowerblue")
         self.reset()
 
     def reset(self) -> None:
@@ -117,7 +117,7 @@ class PixReviewer(QWidget):
         return self._page
 
     @page.setter
-    def page(self, page: Page) -> None:
+    def page(self, page: Page | None) -> None:
         self.reset()
         self._page = page
         self._on_page_set()
@@ -166,7 +166,7 @@ class PixReviewer(QWidget):
         if (base_offset + self._user_transform.shift).y() < self._min_vertical_offset():
             self._user_transform.shift.setY(self._min_vertical_offset() - base_offset.y())
         self._transform.shift = base_offset + self._user_transform.shift
-        print("offset:", self._transform.shift)
+        # print("offset:", self._transform.shift)
 
     def recompute_and_update(self) -> None:
         self._recompute_transform()
@@ -230,7 +230,7 @@ class PixReviewer(QWidget):
             option = QStyleOptionFocusRect()
             option.initFrom(self)
             option.rect = self.rect().adjusted(1, 1, -1, -1)
-            painter.setPen(QPen(self.FOCUS_RECT_COLOR, 1))
+            painter.setPen(QPen(self.focus_rect_color, 1))
             painter.drawRect(option.rect)
 
         self._on_paint(painter)

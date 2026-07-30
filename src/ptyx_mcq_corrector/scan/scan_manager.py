@@ -16,6 +16,8 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.scan.data.scan_data import PageData, AnalyzeResult
 
+from ptyx_mcq_corrector.internal_state import STATE
+
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
 
@@ -56,11 +58,11 @@ class ScanManager(QObject):
 
     @property
     def path(self) -> Path | None:
-        return self.main_window.state.current_file
+        return STATE.current_file
 
     @property
     def parser(self) -> MCQPictureParser | None:
-        return self.main_window.state.parser
+        return STATE.parser
 
     @property
     def abort_event(self) -> Event:

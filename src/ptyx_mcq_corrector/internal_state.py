@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Iterator, TypedDict
 
 from ptyx_mcq.scan.data.students import Student
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
@@ -11,7 +12,8 @@ from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
-from ptyx_mcq_corrector.issues.issues_model import IssueInfo
+
+from ptyx_mcq_corrector.issues.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
@@ -86,6 +88,23 @@ class State:
         if (parser := self.parser) is None:
             return []
         return parser.scan_data.config.students
+
+    def has_valid_student_name(self, doc_id: DocumentId) -> bool:
+        """
+        Test if the document have a valis student name.
+
+        The student name attached to the document must be in the given list, and be unique.
+        """
+        parser = self.parser
+        if parser is None:
+            raise RuntimeError("No current opened file.")
+        student = parser.scan_data.used_docs_index[doc_id].student
+        used_students = {
+            doc.student
+            for doc in parser.scan_data.used_docs_index.values()
+            if doc.student is not None and doc.doc_id != doc_id
+        }
+        return student in self.students and student not in used_students
 
     @property
     def integrity_issues(self) -> None | IntegrityCheckResult:
@@ -232,3 +251,6 @@ class State:
             settings_dict = {}
             print(f"Enable to load state: {e!r}")
         return cls._from_dict(settings_dict)
+
+
+STATE = State.load()

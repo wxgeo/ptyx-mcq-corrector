@@ -13,10 +13,9 @@ from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
-from ptyx_mcq_corrector.internal_state import State, ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssuesModel, IssueType
+from ptyx_mcq_corrector.internal_state import ScanState, STATE
+from ptyx_mcq_corrector.main_area import MainArea
 from ptyx_mcq_corrector.param import ICON_PATH
-from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
 
@@ -40,9 +39,13 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(parent=None)
         # Always load state, even when opening a new session,
         # to get at least the recent files list.
-        self.state = State.load()
         self.file_events_handler = FileEventsHandler(self)
+        self.freeze_update_ui: bool = False  # See update_ui() decorator docstring.
+
         self.setupUi(self)
+        self.main_area = MainArea(self)
+        self.setCentralWidget(self.main_area)
+        self.page_reviewer = self.main_area.page_reviewer
 
         # -----
         # Management of the scan processes takes place in another thread, to keep the UI responsive.
@@ -51,12 +54,11 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_handler.moveToThread(self.scan_thread)
 
         # -----
-        self.issuesView.setModel(IssuesModel(self.state))
-        # List all the different issues reviewers, with their index in their QStackedWidget parent.
-        self._issues_reviewers: dict[IssueType, ReviewerInfo] = {
-            IssueType.NAMES: ReviewerInfo(1, self.name_review),
-            IssueType.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
-        }
+        # # List all the different issues reviewers, with their index in their QStackedWidget parent.
+        # self._issues_reviewers: dict[IssueType, ReviewerInfo] = {
+        #     IssueType.NAMES: ReviewerInfo(1, self.name_review),
+        #     IssueType.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
+        # }
 
         # -----------------
         # Customize display
@@ -69,21 +71,17 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.status_label = QLabel(self)
         self.statusbar.addWidget(self.status_label)
 
+        self.file_events_handler.finalize(args.path)
+        self.scan_thread.start()
+        self.scan_requested.connect(self.scan_handler.scan)
+
+        # self.page_reviewer.main_window = self
+
         # -------------------
         #   Connect signals
         # -------------------
         self.connect_menu_signals()
-        self.file_events_handler.finalize(args.path)
-        self.scan_thread.start()
-        self.scan_requested.connect(self.scan_handler.scan)
         self.scan_handler.scan_progress.connect(self.file_events_handler.on_scan_in_progress)
-        for reviewer_info in self._issues_reviewers.values():
-            if isinstance(reviewer := reviewer_info.reviewer, PixReviewer):
-                reviewer.previous_page_requested.connect(self.issuesView.move_to_previous_index)
-                reviewer.next_page_requested.connect(self.issuesView.move_to_next_index)
-                reviewer.esc_requested.connect(self.issuesView.setFocus)
-        self.name_editor.name_changed.connect(self.file_events_handler.on_name_changed)
-        print("PARENT:", self.dockWidgetContents.parent())
 
     def connect_menu_signals(self) -> None:
         # Don't change handler variable value (because of name binding process in lambdas).
@@ -95,9 +93,10 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionScan_documents.triggered.connect(self.file_events_handler.scan_or_abort)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset())
 
-        self.actionNext.triggered.connect(self.issuesView.move_to_next_index)
-        self.actionPrevious.triggered.connect(self.issuesView.move_to_previous_index)
-        self.actionValidate.triggered.connect(lambda: self.file_events_handler.validate_issue())
+        issues_viewer = self.main_area.page_reviewer.issues_viewer
+        self.actionNext.triggered.connect(issues_viewer.move_to_next_index)
+        self.actionPrevious.triggered.connect(issues_viewer.move_to_previous_index)
+        self.actionValidate.triggered.connect(self.main_area.page_reviewer.validate_issue)
 
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)
@@ -117,29 +116,15 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
     def update_ui(self) -> None:
         self.main_area.setCurrentIndex(0)
-        self._update_review_ui()
+        # self._update_review_ui()
         self._update_scan_ui()
         self._update_title()
-        self._update_header()
-        self._update_main_area()
+        self.main_area.update_view()
         self._update_status_message()  # TODO
-
-    @property
-    def current_reviewer(self) -> QWidget | None:
-        if (issue := self.state.current_issue) is None:
-            return None
-        return self._issues_reviewers[issue.type].reviewer
-
-    def _update_main_area(self) -> None:
-        if (issue := self.state.current_issue) is None:
-            index = 0
-        else:
-            index = self._issues_reviewers[issue.type].index
-        self.main_area.setCurrentIndex(index)
 
     def _update_scan_ui(self) -> None:
         action = self.actionScan_documents
-        if self.state.scan_state == ScanState.IN_PROGRESS:
+        if STATE.scan_state == ScanState.IN_PROGRESS:
             text = "&Abort scan"
             mime = "process-stop"
         else:
@@ -147,72 +132,27 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
             mime = "scanner"
         action.setText(text)
         action.setIcon(QIcon.fromTheme(mime))
-        action.setEnabled(self.state.current_file is not None)
+        action.setEnabled(STATE.current_file is not None)
         self.action_Reset_scan.setEnabled(
-            self.state.current_file is not None and self.state.scan_state != ScanState.IN_PROGRESS
+            STATE.current_file is not None and STATE.scan_state != ScanState.IN_PROGRESS
         )
 
     def _update_title(self) -> None:
         title = param.WINDOW_TITLE
-        if self.state.current_file is not None:
-            title += f" - {self.state.current_file_shortname}"
+        if STATE.current_file is not None:
+            title += f" - {STATE.current_file_shortname}"
         self.setWindowTitle(title)
-
-    def _update_header(self) -> None:
-        if self.state.current_file is None:
-            self.header_label.setText("No document")
-        else:
-            self.header_label.setText(self.state.current_file_shortname)
-            # Any non-null value is OK for `href`, but it can't be left empty, else Qt doesn't generate a link at all.
-            self.header_label.setText(
-                "<p style='text-align:center'>Document <i><b>"
-                f"<a href='#'>{self.state.current_file_shortname}</a>"
-                "</b></i> selected.</p>"
-                "<p style='text-align:center;font-size:small'>Press <b>F5</b> to start scanning.</p>"
-            )
-            try:
-                self.header_label.linkActivated.disconnect()
-            except TypeError:
-                pass  # no connection existed yet
-            self.header_label.linkActivated.connect(lambda _: self.file_events_handler.open_file())
-            self.header_label.setOpenExternalLinks(False)
-
-    def _disable_review_ui(self):
-        self.menuReview.setEnabled(False)
-        self.issuesDock.hide()
-        for action in [self.actionPrevious, self.actionNext, self.actionValidate]:
-            action.setVisible(False)
-        self.name_editor.setVisible(False)
-
-    def _enable_review_ui(self):
-        current_issue = self.state.current_issue
-        for action in [self.actionPrevious, self.actionNext, self.actionValidate]:
-            action.setVisible(True)
-            action.setEnabled(current_issue is not None)
-        is_name_issue = current_issue is not None and current_issue.type == IssueType.NAMES
-        self.name_editor.setVisible(is_name_issue)
-        self.menuReview.setEnabled(True)
-        model = self.issuesView.model()
-        assert isinstance(model, IssuesModel)
-        self.issuesDock.setWindowTitle(model.title)
-        self.issuesDock.show()
-
-    def _update_review_ui(self) -> None:
-        if self.state.scan_state == ScanState.DONE:
-            self._enable_review_ui()
-        else:
-            self._disable_review_ui()
 
     def request_to_close(self) -> bool:
         """Save state and return a boolean indicating if closing is accepted.
 
         For now, requests are always accepted."""
-        self.state.save()
+        STATE.save()
         return True
 
     # noinspection PyDefaultArgument
     def _update_recent_files_menu(self) -> None:
-        recent_files = tuple(self.state.recent_files)
+        recent_files = tuple(STATE.recent_files)
         if not recent_files:
             self.menu_Recent_files.menuAction().setVisible(False)
         else:

@@ -12,17 +12,20 @@ A PyQt5 widget that:
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, QStringListModel, pyqtSignal
+from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout, QCompleter
 
 
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import StudentName, StudentId
-from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
+
+from ptyx_mcq_corrector.internal_state import STATE
+from ptyx_mcq_corrector.review.page.page_displayer import PageDisplayer
 
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.review.page.page_reviewer import PageReviewer
+
 
 # --------------------------------------------------------------------------
 # The main widget
@@ -51,7 +54,7 @@ class NameStatus(Enum):
 
 
 class NameEditor(QWidget):
-    name_changed = pyqtSignal(str, name="name_changed")
+    # name_changed = pyqtSignal(str, name="name_changed")
 
     _styles = {
         NameStatus.VALID: "QLineEdit { margin-left: 10px;background-color: #c5fcac;} QLabel {color: green;}",
@@ -60,16 +63,17 @@ class NameEditor(QWidget):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+        self._parent: "PageReviewer" = parent  # type: ignore
         self.name_editor = QLineEdit(self)
         # self.name_editor.setStyleSheet("QLineEdit { margin-left: 10px;}")
         label = QLabel("&Name/Id:")
         # label.setStyleSheet("QLabel {color: red;}")
         self.display_as(NameStatus.INVALID)
         label.setBuddy(self.name_editor)
-        completer = QCompleter(self)
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.name_editor.setCompleter(completer)
+        self.completer = QCompleter(self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.name_editor.setCompleter(self.completer)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(label)
@@ -81,24 +85,32 @@ class NameEditor(QWidget):
         self.setStyleSheet(self._styles[status])
 
     def on_text_changed(self, text: str) -> None:
-        self.name_changed.emit(text)
-
-    def set_suggestions(self, names: list[str]):
-        model = QStringListModel(names, self)
-        assert (completer := self.name_editor.completer()) is not None
-        completer.setModel(model)
-
-    def set_current_student(self, student: Student) -> None:
-        self.name_editor.setText(student_to_text(student))
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Escape:
-            self.main_window.issuesView.setFocus()
+        # self.name_changed.emit(text)
+        if text in self.names_suggestions:
+            self._parent.page.pic.student = student_from_text(text)
+            self.display_as(NameStatus.VALID)
         else:
-            super().keyPressEvent(event)
+            self.display_as(NameStatus.INVALID)
+
+    @property
+    def names_suggestions(self) -> list[str]:
+        return sorted([student_to_text(student) for student in STATE.students])
+
+    def update_suggestions(self):
+        model = QStringListModel(self.names_suggestions, self)
+        self.completer.setModel(model)
+
+    def set_current_student(self, student: Student | None) -> None:
+        self.name_editor.setText("" if student is None else student_to_text(student))
+
+    # def keyPressEvent(self, event):
+    #     if event.key() == Qt.Key.Key_Escape:
+    #         self.main_window.issuesView.setFocus()
+    #     else:
+    #         super().keyPressEvent(event)
 
 
-class NameReviewer(PixReviewer):
+class NameReviewer(PageDisplayer):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
     # _student: Student

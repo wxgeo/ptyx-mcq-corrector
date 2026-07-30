@@ -22,7 +22,7 @@ from ptyx_mcq.scan.data.documents import Page
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
 from ptyx_mcq.scan.data.questions import CbxState, Answer
 
-from ptyx_mcq_corrector.review.generic_reviewer import PixReviewer
+from ptyx_mcq_corrector.review.page.page_displayer import PageDisplayer
 
 
 class Checkbox:
@@ -62,7 +62,7 @@ class Checkbox:
 # --------------------------------------------------------------------------
 
 
-class CheckboxesReviewer(PixReviewer):
+class CheckboxesReviewer(PageDisplayer):
     """Displays a scanned MCQ image with overlaid, clickable checkbox rectangles."""
 
     checkbox_toggled = pyqtSignal(Checkbox, bool, name="checkbox_toggled")  # (checkbox, new_checked_state)
@@ -79,6 +79,7 @@ class CheckboxesReviewer(PixReviewer):
         self.setMouseTracking(True)
         self.setMinimumSize(200, 200)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.checkbox_review: bool = True
         self.reset()
 
     def reset(self) -> None:
@@ -96,6 +97,8 @@ class CheckboxesReviewer(PixReviewer):
 
     def _on_paint(self, painter: QPainter) -> None:
         """Display the checkboxes, with a different style for each state."""
+        if not self.checkbox_review:
+            return
         for cb in self._checkboxes:
             state = cb.state
             assert state is not None
@@ -116,7 +119,7 @@ class CheckboxesReviewer(PixReviewer):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        if event.button() == Qt.MouseButton.LeftButton:
+        if self.checkbox_review and event.button() == Qt.MouseButton.LeftButton:
             img_pt = self._widget_to_image(event.pos())
             if img_pt is None:
                 return
@@ -129,7 +132,7 @@ class CheckboxesReviewer(PixReviewer):
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
-        if not self._drag.is_started:
+        if self.checkbox_review and not self._drag.is_started:
             # Calculate whether the mouse arrow is hovering a checkbox.
             img_pt = self._widget_to_image(event.pos())
             new_hover = None

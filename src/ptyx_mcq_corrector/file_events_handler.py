@@ -1,17 +1,13 @@
 import threading
-from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Callable
+from typing import TYPE_CHECKING, Final
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
-import ptyx_mcq_corrector.param as param
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-from ptyx_mcq_corrector.internal_state import ScanState
-from ptyx_mcq_corrector.issues.issues_model import IssueInfo, IssueType, IssuesModel
-from ptyx_mcq_corrector.review.checkboxes import CheckboxesReviewer
-from ptyx_mcq_corrector.review.name import NameReviewer, student_to_text, student_from_text, NameStatus
+from ptyx_mcq_corrector.internal_state import ScanState, STATE
+from ptyx_mcq_corrector.tools import update_ui
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -22,54 +18,10 @@ StandardButton = QMessageBox.StandardButton
 # Save = QMessageBox.StandardButton.Save
 
 
-FILES_FILTER = (
-    "All supported Files (*.ex *.ptyx)",
-    "Mcq Exercises Files (*.ex)",
-    "pTyX Files (*.ptyx)",
-    "All Files (*.*)",
-)
-
-
-def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:
-    """Decorator used to indicate that UI must be updated if the operation was successful.
-
-    The decorated function must return True if the operation was successful, False else.
-
-    When nested operations are performed, intermediate ui updates are prevented by
-    freezing temporally the user interface, then updating it only once the last operation is performed.
-    """
-
-    @wraps(f)
-    def wrapper(self: "FileEventsHandler", *args, **kw) -> bool:
-        current_freeze_value = self.freeze_update_ui
-        self.freeze_update_ui = True
-        if not param.DEBUG:
-            self.main_window.setUpdatesEnabled(False)
-        try:
-            if param.DEBUG:
-                _args = [repr(arg) for arg in args] + [f"{key}={val!r}" for (key, val) in kw.items()]
-                print(f"{f.__name__}({', '.join(_args)})")
-            else:
-                print(f.__name__)
-            update = f(self, *args, **kw)
-            assert isinstance(update, bool), (
-                f"Method `FileEventsHandler.{f.__name__}` must return a boolean, not {update!r}"
-            )
-            if update and not current_freeze_value:
-                self._update_ui()
-            return update
-        finally:
-            self.main_window.setUpdatesEnabled(True)
-            self.freeze_update_ui = current_freeze_value
-
-    return wrapper
-
-
 class FileEventsHandler(QObject):
     def __init__(self, main_window: "McqCorrectorMainWindow"):
         super().__init__(parent=main_window)
         self.main_window: Final = main_window
-        self.freeze_update_ui: bool = False  # See update_ui() decorator docstring.
         self.abort_event = threading.Event()
 
     @update_ui
@@ -79,7 +31,7 @@ class FileEventsHandler(QObject):
         return True
 
     def scan_or_abort(self) -> None:
-        if self.state.scan_state == ScanState.IN_PROGRESS:
+        if STATE.scan_state == ScanState.IN_PROGRESS:
             self.abort()
         else:
             self.scan()
@@ -91,100 +43,9 @@ class FileEventsHandler(QObject):
     def scan(self) -> None:
         self.main_window.scan_requested.emit()
 
-    def _name_suggestions(self) -> list[str]:
-        return sorted([student_to_text(student) for student in self.state.students])
-
-    def on_name_changed(self, text: str) -> None:
-        if text in self._name_suggestions():
-            assert isinstance(reviewer := self.main_window.current_reviewer, NameReviewer)
-            reviewer.page.pic.student = student_from_text(text)
-            self.main_window.name_editor.display_as(NameStatus.VALID)
-            self.validate_issue()
-        else:
-            self.main_window.name_editor.display_as(NameStatus.INVALID)
-
-    @update_ui
-    def validate_issue(self) -> bool:
-        if (issue := self.state.current_issue) is None:
-            return False
-        if (model := self.main_window.issuesView.model()) is None:
-            return False
-        model.validate(issue.index)
-        self.main_window.issuesView.move_to_next_index()
-        return True
-
-    @update_ui
-    def validate_all_answers(self) -> bool:
-        if (model := self.main_window.issuesView.model()) is None:
-            return False
-        assert isinstance(model, IssuesModel)
-        for issue in model.issues:
-            if issue.type == IssueType.AMBIGUOUS_ANSWERS:
-                issue.validate_state(self.state.parser.scan_data)
-        return True
-
-    # ---------------------
-    #      Shortcuts
-    # =====================
-
-    @property
-    def state(self):
-        return self.main_window.state
-
-    # ------------------------------------------
-    #      UI synchronization with state
-    # ==========================================
-
-    def _update_ui(self) -> None:
-        """Update window and tab titles according to state data.
-
-        Assure synchronization between ui and state."""
-        self.main_window.update_ui()
-
-    # -------------------------------
-    #    Functions for each state
-    # ===============================
-
-    # def action_none(self):
-    #     self.main_window.disable_navigation()
-    #
-    # def action_integrity_request(self):
-    #     print("Integrity request.")
-    #
-    # def action_name_request(self):
-    #     pass
-    #
-    # def action_answers_request(self):
-    #     pass
-    #
-    # def action_results(self):
-    #     pass
-
     # --------------------------
     #    Events affecting UI
     # ==========================
-
-    @update_ui
-    def on_issue_selected(self, issue: IssueInfo) -> bool:
-        assert issue is not None
-        self.state.current_issue = issue  # To do at first!
-        doc = self.state.parser.scan_data.used_docs_index[issue.doc_id]
-        # Be careful to select the reviewer only *AFTER* the state have been changed.
-        reviewer = self.main_window.current_reviewer
-        match issue.type:
-            case IssueType.NAMES:
-                assert isinstance(reviewer, NameReviewer)
-                reviewer.page = doc.first_page
-                # Update suggestions
-                self.main_window.name_editor.set_suggestions(self._name_suggestions())
-                self.main_window.name_editor.set_current_student(reviewer.page.pic.student)
-            case IssueType.AMBIGUOUS_ANSWERS:
-                assert isinstance(reviewer, CheckboxesReviewer)
-                page = doc.pages_index[issue.page_num]
-                reviewer.page = page
-        assert reviewer is not None
-        reviewer.setFocus()
-        return True
 
     @update_ui
     def reset(self) -> bool:
@@ -200,10 +61,14 @@ class FileEventsHandler(QObject):
             )
             == StandardButton.Yes
         ):
-            self.state.scan_state = ScanState.TO_DO
+            STATE.scan_state = ScanState.TO_DO
             # rmtree(folder := (self.state.current_file.parent / "out"))
-            self.state.parser.scan_data.reset()
-            print(f"Folder '{self.state.current_file.parent / 'out'}' was removed.")
+            parser = STATE.parser
+            assert parser is not None
+            parser.scan_data.reset()
+            current_file = STATE.current_file
+            assert current_file is not None
+            print(f"Folder '{current_file.parent / 'out'}' was removed.")
             return True
         return False
 
@@ -214,18 +79,18 @@ class FileEventsHandler(QObject):
             print(f"Selected path: '{path}'.")
             if path is None:
                 return False
-        return self.state.open_file(path)
+        return STATE.open_file(path)
 
     @update_ui
     def close_file(self) -> bool:
         """Close current directory."""
-        self.state.close_file()
+        STATE.close_file()
         return True
 
     @update_ui
     def start_scan(self) -> bool:
         """Launch scan."""
-        print(f"Starting scan of '{self.state.current_file}'...")
+        print(f"Starting scan of '{STATE.current_file}'...")
         return True
 
     # @update_ui
@@ -238,26 +103,23 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def on_scan_started(self) -> bool:
-        self.state.current_issue = None
-        self.state.scan_state = ScanState.IN_PROGRESS
-        msg = f"Starting scan of '{self.state.current_file}'..."
-        print(msg)
-        self.main_window.header_label.setText(msg)
+        STATE.current_issue = None
+        STATE.scan_state = ScanState.IN_PROGRESS
         return True
 
     def on_scan_in_progress(self, msg: str = "Work in progress..."):
-        self.main_window.header_label.setText(msg)
+        self.main_window.main_area.default_view.header_label.setText(msg)
 
     @update_ui
     def on_scan_ended(self) -> bool:
-        self.state.scan_state = ScanState.DONE
-        self.main_window.issuesView.display_issues()
+        STATE.scan_state = ScanState.DONE
+        self.main_window.main_area.page_reviewer.issues_viewer.display_issues()
         return True
 
     @update_ui
     def on_scan_aborted(self) -> bool:
         self.abort_event.clear()
-        self.state.scan_state = ScanState.TO_DO
+        STATE.scan_state = ScanState.TO_DO
         print("Scan aborted.")
         return True
 
@@ -270,7 +132,7 @@ class FileEventsHandler(QObject):
         filename, _ = QFileDialog.getOpenFileName(
             self.main_window,
             "Open pTyX MCQ configuration file",
-            str(self.state.current_file),
+            str(STATE.current_file),
             f"pTyX MCQ configuration file (*{CONFIG_FILE_EXTENSION})",
         )
         return Path(filename) if filename else None
