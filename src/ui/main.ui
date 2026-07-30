@@ -64,6 +64,8 @@
     <addaction name="actionNext"/>
     <addaction name="actionPrevious"/>
     <addaction name="actionValidate"/>
+    <addaction name="actionValidate_all_answers"/>
+    <addaction name="action_Reset_review"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Scan"/>
@@ -188,6 +190,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Return</string>
+   </property>
+  </action>
+  <action name="actionValidate_all_answers">
+   <property name="text">
+    <string>Validate &amp;all answers</string>
+   </property>
+  </action>
+  <action name="action_Reset_review">
+   <property name="text">
+    <string>&amp;Reset review</string>
    </property>
   </action>
  </widget>

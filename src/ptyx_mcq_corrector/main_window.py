@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget
 
 from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
-from ptyx_mcq_corrector.file_events_handler import FileEventsHandler
+from ptyx_mcq_corrector.file_events_handler import FileEventsHandler, ResetMode
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
 from ptyx_mcq_corrector.internal_state import ScanState, STATE
 from ptyx_mcq_corrector.main_area import MainArea
@@ -90,13 +90,15 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         # *** 'File' menu ***
         self.action_Open_directory.triggered.connect(lambda: handler.open_file())
         # Don't use lambda, else the thread will not be detected correctly by Qt.
-        self.actionScan_documents.triggered.connect(self.file_events_handler.scan_or_abort)
-        self.action_Reset_scan.triggered.connect(lambda: handler.reset())
+        self.actionScan_documents.triggered.connect(handler.scan_or_abort)
+        self.action_Reset_scan.triggered.connect(lambda: handler.reset(ResetMode.SCAN))
 
         issues_viewer = self.main_area.page_reviewer.issues_viewer
         self.actionNext.triggered.connect(issues_viewer.move_to_next_index)
         self.actionPrevious.triggered.connect(issues_viewer.move_to_previous_index)
         self.actionValidate.triggered.connect(self.main_area.page_reviewer.validate_issue)
+        self.actionValidate_all_answers.triggered.connect(self.main_area.page_reviewer.validate_all_answers)
+        self.action_Reset_review.triggered.connect(lambda: handler.reset(ResetMode.REVIEW))
 
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)

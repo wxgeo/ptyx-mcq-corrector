@@ -1,4 +1,5 @@
 import threading
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -16,6 +17,11 @@ StandardButton = QMessageBox.StandardButton
 # Abort = QMessageBox.StandardButton.Abort
 # Discard = QMessageBox.StandardButton.Discard
 # Save = QMessageBox.StandardButton.Save
+
+
+class ResetMode(StrEnum):
+    SCAN = "scan"
+    REVIEW = "review"
 
 
 class FileEventsHandler(QObject):
@@ -48,14 +54,14 @@ class FileEventsHandler(QObject):
     # ==========================
 
     @update_ui
-    def reset(self) -> bool:
-        """Reset scan data."""
+    def reset(self, reset_mode: ResetMode) -> bool:
+        """Reset scan/review data."""
         # Ask for confirmation.
         if (
             QMessageBox.question(
                 self.main_window,
-                "Remove previous scan data",
-                "Are you sure you want to remove any existing scan data?",
+                f"Remove previous {reset_mode} data",
+                f"Are you sure you want to remove any existing {reset_mode} data?",
                 StandardButton.Yes | StandardButton.Cancel,
                 StandardButton.Cancel,
             )
@@ -64,11 +70,15 @@ class FileEventsHandler(QObject):
             STATE.scan_state = ScanState.TO_DO
             # rmtree(folder := (self.state.current_file.parent / "out"))
             parser = STATE.parser
-            assert parser is not None
-            parser.scan_data.reset()
             current_file = STATE.current_file
+            assert parser is not None
             assert current_file is not None
-            print(f"Folder '{current_file.parent / 'out'}' was removed.")
+            if reset_mode == ResetMode.SCAN:
+                parser.scan_data.reset()
+                print(f"Folder '{current_file.parent / 'out'}' was removed.")
+            elif reset_mode == ResetMode.REVIEW:
+                parser.scan_data.reset_review()
+                print(f"Folder '{current_file.parent / 'out/.fix'}' was removed.")
             return True
         return False
 

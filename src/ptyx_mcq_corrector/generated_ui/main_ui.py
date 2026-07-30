@@ -78,6 +78,10 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme("dialog-ok")
         self.actionValidate.setIcon(icon)
         self.actionValidate.setObjectName("actionValidate")
+        self.actionValidate_all_answers = QtGui.QAction(parent=MainWindow)
+        self.actionValidate_all_answers.setObjectName("actionValidate_all_answers")
+        self.action_Reset_review = QtGui.QAction(parent=MainWindow)
+        self.action_Reset_review.setObjectName("action_Reset_review")
         self.menu_Recent_files.addAction(self.actionEMPTY)
         self.menu_File.addAction(self.action_Open_directory)
         self.menu_File.addAction(self.menu_Recent_files.menuAction())
@@ -90,6 +94,8 @@ class Ui_MainWindow(object):
         self.menuReview.addAction(self.actionNext)
         self.menuReview.addAction(self.actionPrevious)
         self.menuReview.addAction(self.actionValidate)
+        self.menuReview.addAction(self.actionValidate_all_answers)
+        self.menuReview.addAction(self.action_Reset_review)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Scan.menuAction())
         self.menubar.addAction(self.menuReview.menuAction())
@@ -129,6 +135,8 @@ class Ui_MainWindow(object):
         self.actionPrevious.setText(_translate("MainWindow", "&Previous"))
         self.actionValidate.setText(_translate("MainWindow", "&Validate"))
         self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
+        self.actionValidate_all_answers.setText(_translate("MainWindow", "Validate &all answers"))
+        self.action_Reset_review.setText(_translate("MainWindow", "&Reset review"))
 
 
 if __name__ == "__main__":

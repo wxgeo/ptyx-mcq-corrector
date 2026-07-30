@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Iterator, TypedDict
 
 from ptyx_mcq.scan.data.students import Student
-from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
