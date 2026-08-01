@@ -9,12 +9,14 @@ A PyQt5 widget that:
      redrawing it (color + checkmark) live.
 """
 
+import os
 from enum import Enum
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout, QCompleter
+from PyQt6.QtCore import QEvent, QObject, QTimer
 
 
 from ptyx_mcq.scan.data.students import Student
@@ -53,6 +55,21 @@ class NameStatus(Enum):
     INVALID = "invalid"
 
 
+class PopupHideFilter(QObject):
+    """Fix a bug on WSL, since .setVisible(False) does not work there for QCompleter.popup()."""
+
+    def eventFilter(self, obj, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Hide:
+            QTimer.singleShot(0, lambda: self._destroy_native(obj))
+        return False
+
+    @staticmethod
+    def _destroy_native(widget: QWidget):
+        handle = widget.windowHandle()
+        if handle is not None:
+            handle.destroy()
+
+
 class NameEditor(QWidget):
     # name_changed = pyqtSignal(str, name="name_changed")
 
@@ -80,6 +97,15 @@ class NameEditor(QWidget):
         layout.addWidget(self.name_editor)
 
         self.name_editor.textChanged.connect(self.on_text_changed)
+        # self.completer.activated.connect(lambda: _force_close(self.completer))
+        if "WSL_DISTRO_NAME" in os.environ:
+            # Fix a bug on WSL, since .setVisible(False) does not work there for QCompleter.popup().
+            # (It leaves a stale window behind).
+            self._hide_filter = PopupHideFilter(self)
+            popup = self.completer.popup()
+            assert popup is not None
+            popup.installEventFilter(self._hide_filter)
+            # Note: if the QCompleter popup should be ever recreated, be careful to reinstall this event filter.
 
     def display_as(self, status: NameStatus) -> None:
         self.setStyleSheet(self._styles[status])

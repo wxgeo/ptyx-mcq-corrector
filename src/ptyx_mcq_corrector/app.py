@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import faulthandler
-import os
 
 import signal
 import sys
@@ -23,9 +22,6 @@ from ptyx_mcq_corrector.main_window import ICON_PATH, McqCorrectorMainWindow
 from ptyx_mcq_corrector.signal_wake_up import SignalWakeupHandler
 
 faulthandler.enable()
-if "WSL_DISTRO_NAME" in os.environ:
-    print("WSL detected.")
-    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 def my_excepthook(
