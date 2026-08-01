@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QStackedWidget, QWidget, QLabel, QVBoxLayout, QHBoxLayout
 
 from ptyx_mcq_corrector.internal_state import STATE, ScanState
-from ptyx_mcq_corrector.issues.issue_info import IssueType
+from ptyx_mcq_corrector.review.issues.issue_info import IssueType
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow

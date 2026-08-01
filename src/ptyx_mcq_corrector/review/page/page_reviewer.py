@@ -8,9 +8,9 @@ from ptyx_mcq.scan.data.documents import Page
 
 from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.internal_state import STATE
-from ptyx_mcq_corrector.issues.issues_model import IssuesModel
-from ptyx_mcq_corrector.issues.issue_info import IssueType, IssueInfo
-from ptyx_mcq_corrector.issues.issues_view import IssuesViewer
+from ptyx_mcq_corrector.review.issues.issues_model import IssuesModel
+from ptyx_mcq_corrector.review.issues.issue_info import IssueType, IssueInfo
+from ptyx_mcq_corrector.review.issues.issues_view import IssuesViewer
 from ptyx_mcq_corrector.review.page.cbx_reviewer import CheckboxesReviewer
 from ptyx_mcq_corrector.review.page.name_editor import NameEditor, student_to_text
 from ptyx_mcq_corrector.tools import update_ui

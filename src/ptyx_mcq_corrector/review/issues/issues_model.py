@@ -7,8 +7,8 @@ from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 
-from ptyx_mcq_corrector.internal_state import State
-from ptyx_mcq_corrector.issues.issue_info import IssueType, IssueInfo
+from ptyx_mcq_corrector.internal_state import AppState
+from ptyx_mcq_corrector.review.issues.issue_info import IssueType, IssueInfo
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
@@ -61,14 +61,14 @@ def _add_category(root: QStandardItem, issues_type: IssueType, results: FoundIss
 
 
 class IssuesModel(QStandardItemModel):
-    def __init__(self, state: "State"):
+    def __init__(self, state: "AppState"):
         super().__init__()
         self.state = state
         self.current_doc: DocumentId | None = None
         self.current_page: PageNum | None = None
         self.title: str = ""
 
-    def update(self) -> bool:
+    def update_model(self) -> bool:
         """
         Update the state of the model.
 

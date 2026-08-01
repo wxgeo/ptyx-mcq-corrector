@@ -7,7 +7,7 @@ from PyQt6.QtGui import QColor, QPalette, QFont, QKeyEvent
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
 # from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
-from ptyx_mcq_corrector.issues.issues_model import (
+from ptyx_mcq_corrector.review.issues.issues_model import (
     IssueState,
     STATE_ROLE,
     IssuesModel,
@@ -117,7 +117,7 @@ class IssuesViewer(QTreeView):
     def display_issues(self) -> None:
         if (model := self.model()) is not None:
             assert isinstance(model, IssuesModel)
-            model.update()
+            model.update_model()
             self.setItemDelegate(IssueStateDelegate(self))
             self.expandAll()
             # self.show()

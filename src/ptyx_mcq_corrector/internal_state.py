@@ -13,7 +13,7 @@ from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 
-from ptyx_mcq_corrector.issues.issue_info import IssueInfo
+from ptyx_mcq_corrector.review.issues.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
@@ -33,7 +33,7 @@ class InvalidFileError(OSError):
     """Error raised when the file type is invalid."""
 
 
-class State:
+class AppState:
     """The application current state.
 
     This includes recent files.
@@ -220,13 +220,13 @@ class State:
         return d
 
     @classmethod
-    def _from_dict(cls, d: dict[str, Any]) -> "State":
+    def _from_dict(cls, d: dict[str, Any]) -> "AppState":
         recent_files = [Path(s) for s in d.get("recent_files", [])]
         current_file = d.get("current_file")
         if current_file is not None:
             # noinspection PyTypeChecker
             current_file = Path(current_file)
-        return State(
+        return AppState(
             recent_files=recent_files,
             current_file=current_file,
         )
@@ -241,7 +241,7 @@ class State:
         print(f"Config saved in {CONFIG_PATH}")
 
     @classmethod
-    def load(cls) -> "State":
+    def load(cls) -> "AppState":
         """Load configuration."""
         try:
             settings_dict = tomllib.loads(CONFIG_PATH.read_text("utf8"))
@@ -253,4 +253,4 @@ class State:
         return cls._from_dict(settings_dict)
 
 
-STATE = State.load()
+STATE = AppState.load()
