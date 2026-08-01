@@ -22,11 +22,11 @@ from PyQt6.QtCore import QEvent, QObject, QTimer
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import StudentName, StudentId
 
-from ptyx_mcq_corrector.internal_state import STATE
-from ptyx_mcq_corrector.review.page.page_displayer import PageDisplayer
+from ptyx_mcq_corrector.app_state import STATE
+from ptyx_mcq_corrector.views.data_issues.page_displayer import PageDisplayer
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.review.page.page_reviewer import PageReviewer
+    from ptyx_mcq_corrector.views.data_issues.page_reviewer import DataView
 
 
 # --------------------------------------------------------------------------
@@ -58,8 +58,8 @@ class NameStatus(Enum):
 class PopupHideFilter(QObject):
     """Fix a bug on WSL, since .setVisible(False) does not work there for QCompleter.popup()."""
 
-    def eventFilter(self, obj, event: QEvent) -> bool:
-        if event.type() == QEvent.Type.Hide:
+    def eventFilter(self, obj, event: QEvent | None) -> bool:
+        if event is not None and event.type() == QEvent.Type.Hide:
             QTimer.singleShot(0, lambda: self._destroy_native(obj))
         return False
 
@@ -80,7 +80,7 @@ class NameEditor(QWidget):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self._parent: "PageReviewer" = parent  # type: ignore
+        self._parent: "DataView" = parent  # type: ignore
         self.name_editor = QLineEdit(self)
         # self.name_editor.setStyleSheet("QLineEdit { margin-left: 10px;}")
         label = QLabel("&Name/Id:")
@@ -150,10 +150,10 @@ class NameReviewer(PageDisplayer):
     # ---- public API ----------------------------------------------------
 
     # def _on_page_set(self) -> None:
-    #     if (page := self.page) is not None:
-    #         self._student = page.student
+    #     if (data_issues := self.data_issues) is not None:
+    #         self._student = data_issues.student
 
     # def validate(self) -> None:
     #     """Save the new student's name and id on the drive."""
-    #     if (page := self.page) is not None:
-    #         self.page.pic.student = self._student
+    #     if (data_issues := self.data_issues) is not None:
+    #         self.data_issues.pic.student = self._student

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
-from ptyx_mcq_corrector.internal_state import STATE
+from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.scores.scores_model import ScoresModel
 from ptyx_mcq_corrector.scores.scores_view import ScoresView
 

@@ -7,7 +7,7 @@ from PyQt6.QtGui import QColor, QPalette, QFont, QKeyEvent
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
 # from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
-from ptyx_mcq_corrector.review.issues.issues_model import (
+from ptyx_mcq_corrector.issues_widget.issues_model import (
     IssueState,
     STATE_ROLE,
     IssuesModel,
@@ -16,7 +16,7 @@ from ptyx_mcq_corrector.review.issues.issues_model import (
 
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.review.page.page_reviewer import PageReviewer
+    from ptyx_mcq_corrector.views.data_issues.page_reviewer import DataView
 
 
 class IssueColor:
@@ -77,7 +77,7 @@ class IssueStateDelegate(QStyledItemDelegate):
 class IssuesViewer(QTreeView):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
-        self._parent: "PageReviewer" = parent  # type:ignore
+        self._parent: "DataView" = parent  # type:ignore
         self.setHeaderHidden(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
@@ -114,7 +114,7 @@ class IssuesViewer(QTreeView):
     def move_to_previous_index(self) -> None:
         self.setCurrentIndex(self._navigate(self.indexAbove))
 
-    def display_issues(self) -> None:
+    def update_issues(self) -> None:
         if (model := self.model()) is not None:
             assert isinstance(model, IssuesModel)
             model.update_model()

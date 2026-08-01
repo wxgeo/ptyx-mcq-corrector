@@ -7,12 +7,12 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from ptyx_mcq.scan.data.documents import Page
 
 from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
-from ptyx_mcq_corrector.internal_state import STATE
-from ptyx_mcq_corrector.review.issues.issues_model import IssuesModel
-from ptyx_mcq_corrector.review.issues.issue_info import IssueType, IssueInfo
-from ptyx_mcq_corrector.review.issues.issues_view import IssuesViewer
-from ptyx_mcq_corrector.review.page.cbx_reviewer import CheckboxesReviewer
-from ptyx_mcq_corrector.review.page.name_editor import NameEditor, student_to_text
+from ptyx_mcq_corrector.app_state import STATE
+from ptyx_mcq_corrector.issues_widget.issues_model import IssuesModel
+from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
+from ptyx_mcq_corrector.issues_widget.issues_view import IssuesViewer
+from ptyx_mcq_corrector.views.data_issues.cbx_reviewer import CheckboxesReviewer
+from ptyx_mcq_corrector.views.data_issues.name_editor import NameEditor, student_to_text
 from ptyx_mcq_corrector.tools import update_ui
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class Components(Flag):
     BOTH = 3
 
 
-class PageReviewer(EnhancedWidget):
+class DataView(EnhancedWidget):
     # main_window: "McqCorrectorMainWindow"
 
     def __init__(self, parent: QWidget | None = None):
@@ -82,6 +82,9 @@ class PageReviewer(EnhancedWidget):
             case _:
                 color = "black"
         self.page_view.focus_rect_color = QColor(color)
+
+    def update_issues(self) -> None:
+        self.issues_viewer.update_issues()
 
     @property
     def page(self) -> Page:

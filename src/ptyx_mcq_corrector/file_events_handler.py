@@ -7,8 +7,9 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-from ptyx_mcq_corrector.internal_state import ScanState, STATE
+from ptyx_mcq_corrector.app_state import STATE, State
 from ptyx_mcq_corrector.tools import update_ui
+from ptyx_mcq_corrector.views.main_area import DEFAULTS_VIEW_MODES
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -21,7 +22,7 @@ StandardButton = QMessageBox.StandardButton
 
 class ResetMode(StrEnum):
     SCAN = "scan"
-    REVIEW = "review"
+    REVIEW = "integrity_issues"
 
 
 class FileEventsHandler(QObject):
@@ -37,7 +38,7 @@ class FileEventsHandler(QObject):
         return True
 
     def scan_or_abort(self) -> None:
-        if STATE.scan_state == ScanState.IN_PROGRESS:
+        if STATE.state == State.SCAN_IN_PROGRESS:
             self.abort()
         else:
             self.scan()
@@ -53,9 +54,23 @@ class FileEventsHandler(QObject):
     #    Events affecting UI
     # ==========================
 
+    @property
+    def state(self) -> State:
+        return STATE.state
+
+    @update_ui
+    def update_state(self, state: State) -> bool:
+        """Set the application global state and update the view accordingly."""
+        if STATE.state == state:
+            return False
+        STATE.state = state  # To do at first!
+        view_mode = DEFAULTS_VIEW_MODES[state]
+        self.main_window.main_area.view_mode = view_mode
+        return True
+
     @update_ui
     def reset(self, reset_mode: ResetMode) -> bool:
-        """Reset scan/review data."""
+        """Reset scan/integrity_issues data."""
         # Ask for confirmation.
         if (
             QMessageBox.question(
@@ -67,7 +82,7 @@ class FileEventsHandler(QObject):
             )
             == StandardButton.Yes
         ):
-            STATE.scan_state = ScanState.TO_DO
+            self.update_state(State.NO_SCAN)
             # rmtree(folder := (self.state.current_file.parent / "out"))
             parser = STATE.parser
             current_file = STATE.current_file
@@ -114,7 +129,7 @@ class FileEventsHandler(QObject):
     @update_ui
     def on_scan_started(self) -> bool:
         STATE.current_issue = None
-        STATE.scan_state = ScanState.IN_PROGRESS
+        self.update_state(State.SCAN_IN_PROGRESS)
         return True
 
     def on_scan_in_progress(self, msg: str = "Work in progress..."):
@@ -122,14 +137,19 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def on_scan_ended(self) -> bool:
-        STATE.scan_state = ScanState.DONE
-        self.main_window.main_area.page_reviewer.issues_viewer.display_issues()
+        if STATE.integrity_issues_detected:
+            self.update_state(State.INTEGRITY_ISSUES)
+        elif STATE.data_issues_detected:
+            self.update_state(State.DATA_ISSUES)
+            self.main_window.main_area.data_view.update_issues()
+        else:
+            self.update_state(State.VALIDATED)
         return True
 
     @update_ui
     def on_scan_aborted(self) -> bool:
         self.abort_event.clear()
-        STATE.scan_state = ScanState.TO_DO
+        self.update_state(State.NO_SCAN)
         print("Scan aborted.")
         return True
 

@@ -7,8 +7,8 @@ from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 
-from ptyx_mcq_corrector.internal_state import AppState
-from ptyx_mcq_corrector.review.issues.issue_info import IssueType, IssueInfo
+from ptyx_mcq_corrector.app_state import AppState
+from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
@@ -45,7 +45,7 @@ def _add_item(
 
 def _add_category(root: QStandardItem, issues_type: IssueType, results: FoundIssues) -> None:
     """
-    Add the issues of the same type to the model.
+    Add the issues_widget of the same type to the model.
     """
     category = _add_header(root, str(issues_type))
     if isinstance(results, dict):
@@ -72,7 +72,7 @@ class IssuesModel(QStandardItemModel):
         """
         Update the state of the model.
 
-        Return `True` if any issues were found, `False` otherwise.
+        Return `True` if any issues_widget were found, `False` otherwise.
         """
         issues: IntegrityCheckResult | DataCheckResult | None
         categories: dict[IssueType, FoundIssues]
@@ -83,7 +83,7 @@ class IssuesModel(QStandardItemModel):
                 IssueType.DUPLICATES: issues.duplicates,
                 IssueType.MISSING_PAGES: issues.missing_pages,
             }
-            return self._fill_model("Integrity issues", categories)
+            return self._fill_model("Integrity issues_widget", categories)
         elif self.state.data_issues_detected:
             issues = self.state.data_issues
             assert isinstance(issues, DataCheckResult)
@@ -91,7 +91,7 @@ class IssuesModel(QStandardItemModel):
                 IssueType.NAMES: issues.names_to_review,
                 IssueType.AMBIGUOUS_ANSWERS: issues.ambiguous_answers_by_doc,
             }
-            return self._fill_model("Data issues", categories)
+            return self._fill_model("Data issues_widget", categories)
         return False
 
     def _fill_model(
@@ -100,9 +100,9 @@ class IssuesModel(QStandardItemModel):
         categories: Mapping[IssueType, FoundIssues],
     ):
         """
-        Fill the model with detected issues.
+        Fill the model with detected issues_widget.
 
-        Return `True` if any issues were found, `False` otherwise.
+        Return `True` if any issues_widget were found, `False` otherwise.
         """
         self.clear()
         self.title = title

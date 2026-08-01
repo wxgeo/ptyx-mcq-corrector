@@ -13,14 +13,18 @@ from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 
-from ptyx_mcq_corrector.review.issues.issue_info import IssueInfo
+from ptyx_mcq_corrector.issues_widget.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
-class ScanState(Enum):
-    TO_DO = auto()
-    IN_PROGRESS = auto()
-    DONE = auto()
+class State(Enum):
+    NO_SCAN = auto()
+    SCAN_IN_PROGRESS = auto()
+    INTEGRITY_ISSUES = auto()
+    DATA_ISSUES = auto()
+    VALIDATED = auto()
+    SCORES_COMPUTED = auto()
+    CORRECTIONS_GENERATED = auto()
 
 
 class Cache(TypedDict, total=False):
@@ -41,7 +45,7 @@ class AppState:
 
     __curent_file: Path | None
     current_issue: IssueInfo | None
-    scan_state: ScanState
+    state: State
     _cache: Cache
 
     def __init__(self, recent_files: list[Path] | None = None, current_file: Path | None = None):
@@ -55,7 +59,7 @@ class AppState:
         """
         self._current_file = None
         self.current_issue = None
-        self.scan_state = ScanState.TO_DO
+        self.state = State.NO_SCAN
         self._cache = Cache()
 
     @property
@@ -108,8 +112,8 @@ class AppState:
 
     @property
     def integrity_issues(self) -> None | IntegrityCheckResult:
-        """Return the found integrity issues for the current file, or `None` if no scan was done yet."""
-        if self.scan_state != ScanState.DONE or (parser := self.parser) is None:
+        """Return the found integrity issues_widget for the current file, or `None` if no scan was done yet."""
+        if (parser := self.parser) is None:
             return None
         try:
             return self._cache["integrity_check"]
@@ -119,11 +123,11 @@ class AppState:
 
     @property
     def data_issues(self) -> None | DataCheckResult:
-        """Return the found data issues for the current file, or `None` if no scan was done yet,
-        or if integrity issues have not been solved."""
-        if self.scan_state != ScanState.DONE or (parser := self.parser) is None:
+        """Return the found data issues_widget for the current file, or `None` if no scan was done yet,
+        or if integrity issues_widget have not been solved."""
+        if (parser := self.parser) is None:
             return None
-        # Don't search for data issues if integrity issues has not been solved yet.
+        # Don't search for data issues_widget if integrity issues_widget has not been solved yet.
         if (issues := self.integrity_issues) is None or not issues.is_ok:
             return None
         try:
@@ -135,16 +139,16 @@ class AppState:
     @property
     def integrity_issues_detected(self) -> bool:
         """
-        Test whether integrity issues have been detected in the current file.
+        Test whether integrity issues_widget have been detected in the current file.
         """
         return (issues := self.integrity_issues) is not None and not issues.is_ok
 
     @property
     def data_issues_detected(self) -> bool:
         """
-        Test whether fixable data issues have been detected in the current file.
+        Test whether fixable data issues_widget have been detected in the current file.
 
-        Note that data issues are fixable only if there is no remaining integrity issue.
+        Note that data issues_widget are fixable only if there is no remaining integrity issue.
         """
         return (issues := self.data_issues) is not None and not issues.is_ok
 

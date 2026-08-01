@@ -6,11 +6,15 @@ Notes on internal architecture
 When applying a complete documents' evaluation process, the application will be in those successive states:
 
 - `NO_SCAN`
-- `INTEGRITY_ISSUES_FOUND`
-- `DATA_ISSUES_FOUND`
-- `NO_ISSUES`
+- `SCAN_IN_PROGRESS`
+- `INTEGRITY_ISSUES`
+- `DATA_ISSUES`
+- `VALIDATED`
 - `SCORES_COMPUTED`
-- `CORRECTION_GENERATED`
+- `CORRECTIONS_GENERATED`
+
+Not decided yet: add something like `CORRECTIONS_IN_PROGRESS`,
+with the ability to abort the PDF files' generation?
 
 ### `NO_SCAN`
 
@@ -33,7 +37,7 @@ _default view_: View.DEFAULT
 
 **Scan finished, integrity issues have been found (missing pages/duplicate pages)**
 
-_default view_: View.DEFAULT
+_default view_: View.INTEGRITY_ISSUES
 
 ### `DATA_ISSUES`
 
@@ -42,11 +46,11 @@ answers)**
 
 _default view_: View.DATA_ISSUES
 
-### `NO_ISSUES`
+### `VALIDATED`
 
 **Scan finished, no issues left.**
 
-_default view_: View.INTEGRITY_ISSUES
+_default view_: View.SCORES
 
 ### `SCORES_COMPUTED`
 
@@ -54,7 +58,7 @@ _default view_: View.INTEGRITY_ISSUES
 
 _default view_: View.SCORES
 
-### `CORRECTION_GENERATED`
+### `CORRECTIONS_GENERATED`
 
 **The correction version in pdf have been generated for each document.**
 
@@ -90,7 +94,7 @@ Defined views:
 - `DATA_ISSUES`
 - `SEARCH_RESULTS`
 - `SCORES`
-- `CORRECTION`
+- `CORRECTIONS`
 
 ### `DEFAULT`
 
@@ -98,9 +102,10 @@ _possible states_: State.NO_SCAN
 
 Available actions:
 
-- scan (*)
+- scan (*) -> (1)
 
 (*): potentially slow action, that must take place in another thread
+(1): State.INTEGRITY_ISSUE | State.DATA_ISSUE | State.VALIDATED
 
 ### `INTEGRITY_ISSUES`
 
@@ -108,9 +113,8 @@ _possible states_: State.INTEGRITY_ISSUES
 
 Available actions:
 
-- scan (*)
-- fix (remove some documents)
-- search and review
+- scan (*) -> (1)
+- fix if possible (remove some documents) -> State.DATA_ISSUES | State.VALIDATED
 
 ### `DATA_ISSUES`
 
@@ -118,44 +122,44 @@ _possible states_: State.DATA_ISSUES
 
 Available actions:
 
-- scan (*)
-- fix (review + validate all, then refresh)
-- search and review
+- scan (*) -> (1)
+- fix (review + validate all, then refresh) -> State.DATA_ISSUES | State.VALIDATED
+- search and review -> <state unchanged>
 
 ### `SEARCH_RESULTS`
 
-_possible states_: all except for State.NO_SCAN
+_possible states_: all except for State.NO_SCAN and State.SCAN_IN_PROGRESS
 
 Available actions:
 
-- scan (*)
-- modify (review + validate)
-- escape: go back to default state's view
-- search and review (new search)
+- scan (*) -> (1)
+- modify (review + validate) -> State.DATA_ISSUES | State.VALIDATED
+- escape: go back to default state's view -> <state unchanged>
+- search and review (new search) -> <state unchanged>
 
 ### `SCORES`
 
-_possible states_: State.SCORES_COMPUTED | State.CORRECTION_GENERATED
+_possible states_: State.SCORES_COMPUTED | State.CORRECTIONS_GENERATED
 
 Available actions:
 
-- scan (*)
-- open spreadsheet
-- generate correction (*)
-- search and review
+- scan (*) -> (1)
+- open spreadsheet -> <state unchanged>
+- generate correction (*) -> State.CORRECTIONS_GENERATED
+- search and review -> <state unchanged>
 
-### `CORRECTION`
+### `CORRECTIONS`
 
-_possible states_: State.CORRECTION_GENERATED
+_possible states_: State.CORRECTIONS_GENERATED
 
 Available actions:
 
-- scan (*)
-- go back to scores
-- open spreadsheet
-- see corrections
-- open pdf
-- regenerate correction? (*)
-- search and review
+- scan (*) -> (1)
+- go back to scores -> States.SCORES_COMPUTED
+- open spreadsheet -> <state unchanged>
+- see corrections -> <state unchanged>
+- open pdf -> <state unchanged>
+- regenerate correction? (*) -> <state unchanged>
+- search and review -> <state unchanged>
 
 ------

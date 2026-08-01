@@ -104,7 +104,7 @@ class PageDisplayer(QWidget):
 
     @property
     def pixmap(self) -> QPixmap | None:
-        """Return the pixmap of the MCQ image of the current page, if any, else `None`."""
+        """Return the pixmap of the MCQ image of the current data_issues, if any, else `None`."""
         if self._page is None:
             self._cached_pixmap = None
         elif self._cached_pixmap is None:
@@ -124,7 +124,7 @@ class PageDisplayer(QWidget):
         self.recompute_and_update()
 
     def _on_page_set(self) -> None:
-        """To subclass, to add actions when a new page is set."""
+        """To subclass, to add actions when a new data_issues is set."""
 
     # ---- coordinate mapping (widget <-> original image) -----------------
 

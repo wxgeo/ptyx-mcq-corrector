@@ -71,8 +71,3 @@ def main(args: list | None = None) -> None:
         raise e
     print("Bye!")
     sys.exit(return_code)
-
-
-# TODO: support for arguments (file to open)
-if __name__ == "__main__":
-    main()

@@ -16,7 +16,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.scan.data.scan_data import PageData, AnalyzeResult
 
-from ptyx_mcq_corrector.internal_state import STATE
+from ptyx_mcq_corrector.app_state import STATE
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow

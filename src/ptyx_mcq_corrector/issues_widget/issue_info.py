@@ -5,11 +5,11 @@ from PyQt6.QtCore import QModelIndex
 from ptyx_mcq.scan.data.scan_data import ScanData
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 
-import ptyx_mcq_corrector.internal_state as internal_state
+import ptyx_mcq_corrector.app_state as internal_state
 
 
 class IssueType(StrEnum):
-    NAMES = "Names issues"
+    NAMES = "Names issues_widget"
     AMBIGUOUS_ANSWERS = "Ambiguous answers"
     MISSING_PAGES = "Missing pages"
     DUPLICATES = "Duplicates"

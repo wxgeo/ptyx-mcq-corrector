@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mcq-corrector = "ptyx_mcq_corrector.app:main"
+mcq-corrector = "ptyx_mcq_corrector.main:main"
 
 [dependency-groups]
 dev = [
@@ -33,7 +33,7 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = "src"
-module-name= "ptyx_mcq_corrector"
+module-name = "ptyx_mcq_corrector"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]

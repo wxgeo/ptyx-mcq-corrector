@@ -136,7 +136,7 @@ class Ui_MainWindow(object):
         self.actionValidate.setText(_translate("MainWindow", "&Validate"))
         self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
         self.actionValidate_all_answers.setText(_translate("MainWindow", "Validate &all answers"))
-        self.action_Reset_review.setText(_translate("MainWindow", "&Reset review"))
+        self.action_Reset_review.setText(_translate("MainWindow", "&Reset integrity_issues"))
 
 
 if __name__ == "__main__":

@@ -13,8 +13,8 @@ from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler, ResetMode
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
-from ptyx_mcq_corrector.internal_state import ScanState, STATE
-from ptyx_mcq_corrector.main_area import MainArea
+from ptyx_mcq_corrector.app_state import STATE, State
+from ptyx_mcq_corrector.views.main_area import MainArea
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
 
@@ -45,7 +45,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.main_area = MainArea(self)
         self.setCentralWidget(self.main_area)
-        self.page_reviewer = self.main_area.page_reviewer
+        self.page_reviewer = self.main_area.data_view
 
         # -----
         # Management of the scan processes takes place in another thread, to keep the UI responsive.
@@ -54,7 +54,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_handler.moveToThread(self.scan_thread)
 
         # -----
-        # # List all the different issues reviewers, with their index in their QStackedWidget parent.
+        # # List all the different issues_widget reviewers, with their index in their QStackedWidget parent.
         # self._issues_reviewers: dict[IssueType, ReviewerInfo] = {
         #     IssueType.NAMES: ReviewerInfo(1, self.name_review),
         #     IssueType.AMBIGUOUS_ANSWERS: ReviewerInfo(2, self.checkboxes_review),
@@ -75,7 +75,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.scan_thread.start()
         self.scan_requested.connect(self.scan_handler.scan)
 
-        # self.page_reviewer.main_window = self
+        # self.data_view.main_window = self
 
         # -------------------
         #   Connect signals
@@ -93,11 +93,11 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionScan_documents.triggered.connect(handler.scan_or_abort)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset(ResetMode.SCAN))
 
-        issues_viewer = self.main_area.page_reviewer.issues_viewer
+        issues_viewer = self.main_area.data_view.issues_viewer
         self.actionNext.triggered.connect(issues_viewer.move_to_next_index)
         self.actionPrevious.triggered.connect(issues_viewer.move_to_previous_index)
-        self.actionValidate.triggered.connect(self.main_area.page_reviewer.validate_issue)
-        self.actionValidate_all_answers.triggered.connect(self.main_area.page_reviewer.validate_all_answers)
+        self.actionValidate.triggered.connect(self.main_area.data_view.validate_issue)
+        self.actionValidate_all_answers.triggered.connect(self.main_area.data_view.validate_all_answers)
         self.action_Reset_review.triggered.connect(lambda: handler.reset(ResetMode.REVIEW))
 
         self.action_Close.triggered.connect(lambda: handler.close_file())
@@ -126,7 +126,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
 
     def _update_scan_ui(self) -> None:
         action = self.actionScan_documents
-        if STATE.scan_state == ScanState.IN_PROGRESS:
+        if STATE.state == State.SCAN_IN_PROGRESS:
             text = "&Abort scan"
             mime = "process-stop"
         else:
@@ -136,7 +136,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         action.setIcon(QIcon.fromTheme(mime))
         action.setEnabled(STATE.current_file is not None)
         self.action_Reset_scan.setEnabled(
-            STATE.current_file is not None and STATE.scan_state != ScanState.IN_PROGRESS
+            STATE.current_file is not None and STATE.state != State.SCAN_IN_PROGRESS
         )
 
     def _update_title(self) -> None:
