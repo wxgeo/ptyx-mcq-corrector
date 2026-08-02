@@ -82,6 +82,10 @@ class Ui_MainWindow(object):
         self.actionValidate_all_answers.setObjectName("actionValidate_all_answers")
         self.action_Reset_review = QtGui.QAction(parent=MainWindow)
         self.action_Reset_review.setObjectName("action_Reset_review")
+        self.actionRefresh = QtGui.QAction(parent=MainWindow)
+        icon = QtGui.QIcon.fromTheme("view-refresh")
+        self.actionRefresh.setIcon(icon)
+        self.actionRefresh.setObjectName("actionRefresh")
         self.menu_Recent_files.addAction(self.actionEMPTY)
         self.menu_File.addAction(self.action_Open_directory)
         self.menu_File.addAction(self.menu_Recent_files.menuAction())
@@ -106,6 +110,7 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionNext)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionValidate)
+        self.toolBar.addAction(self.actionRefresh)
 
         self.retranslateUi(MainWindow)
         self.action_Quit.triggered.connect(MainWindow.close) # type: ignore
@@ -136,7 +141,8 @@ class Ui_MainWindow(object):
         self.actionValidate.setText(_translate("MainWindow", "&Validate"))
         self.actionValidate.setShortcut(_translate("MainWindow", "Ctrl+Return"))
         self.actionValidate_all_answers.setText(_translate("MainWindow", "Validate &all answers"))
-        self.action_Reset_review.setText(_translate("MainWindow", "&Reset integrity_issues"))
+        self.action_Reset_review.setText(_translate("MainWindow", "&Reset review"))
+        self.actionRefresh.setText(_translate("MainWindow", "Refresh"))
 
 
 if __name__ == "__main__":

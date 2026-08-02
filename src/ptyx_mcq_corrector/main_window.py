@@ -99,6 +99,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionValidate.triggered.connect(self.main_area.data_view.validate_issue)
         self.actionValidate_all_answers.triggered.connect(self.main_area.data_view.validate_all_answers)
         self.action_Reset_review.triggered.connect(lambda: handler.reset(ResetMode.REVIEW))
+        self.actionRefresh.triggered.connect(lambda: handler.refresh_issues())
 
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)

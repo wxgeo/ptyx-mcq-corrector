@@ -48,7 +48,7 @@ ALLOWED_STATES: dict[ViewMode, list[State]] = {
         State.SCORES_COMPUTED,
         State.CORRECTIONS_GENERATED,
     ],
-    ViewMode.SCORES: [State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED],
+    ViewMode.SCORES: [State.VALIDATED, State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED],
     ViewMode.CORRECTIONS: [State.CORRECTIONS_GENERATED],
 }
 
@@ -82,9 +82,15 @@ class MainArea(QStackedWidget):
 
     def update_view(self) -> None:
         # TODO: handle scores' view
+        self._parent.menuReview.setEnabled(self.view_mode != ViewMode.DEFAULT)
         is_review = self.view_mode in (ViewMode.INTEGRITY_ISSUES, ViewMode.DATA_ISSUES)
-        self._parent.menuReview.setEnabled(is_review)
-        for action in [self._parent.actionPrevious, self._parent.actionNext, self._parent.actionValidate]:
+        for action in [
+            self._parent.actionPrevious,
+            self._parent.actionNext,
+            self._parent.actionValidate,
+            self._parent.actionValidate_all_answers,
+            self._parent.actionRefresh,
+        ]:
             action.setVisible(is_review)
             action.setEnabled(is_review)
         print(self.view_mode)

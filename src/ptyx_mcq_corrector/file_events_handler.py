@@ -94,6 +94,7 @@ class FileEventsHandler(QObject):
             elif reset_mode == ResetMode.REVIEW:
                 parser.scan_data.reset_review()
                 print(f"Folder '{current_file.parent / 'out/.fix'}' was removed.")
+            STATE.reset_issues()
             return True
         return False
 
@@ -145,6 +146,10 @@ class FileEventsHandler(QObject):
         else:
             self.update_state(State.VALIDATED)
         return True
+
+    def refresh_issues(self) -> None:
+        STATE.reset_issues()
+        self.on_scan_ended()
 
     @update_ui
     def on_scan_aborted(self) -> bool:

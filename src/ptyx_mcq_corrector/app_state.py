@@ -152,6 +152,10 @@ class AppState:
         """
         return (issues := self.data_issues) is not None and not issues.is_ok
 
+    def reset_issues(self) -> None:
+        del self._cache["integrity_check"]
+        del self._cache["data_check"]
+
     @property
     def default_dir(self) -> Path:
         """Default directory proposed when opening a file.
