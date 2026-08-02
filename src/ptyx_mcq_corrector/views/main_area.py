@@ -5,10 +5,9 @@ from PyQt6.QtWidgets import QStackedWidget, QWidget, QMenu
 
 from ptyx_mcq_corrector.app_state import STATE, State
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueType
-from ptyx_mcq_corrector.scores.scores_view import ScoresView
-from ptyx_mcq_corrector.views.corrections.main_widget import CorrectionsView
 from ptyx_mcq_corrector.views.default.main_widget import DefaultView
 from ptyx_mcq_corrector.views.integrity_issues.main_widget import IntegrityView
+from ptyx_mcq_corrector.views.scores.main_widget import ScoresView
 from ptyx_mcq_corrector.views.search_results.main_widget import SearchView
 
 if TYPE_CHECKING:
@@ -22,7 +21,6 @@ class ViewMode(IntEnum):
     DATA_ISSUES = 2
     SEARCH_RESULTS = 3
     SCORES = 4
-    CORRECTIONS = 5
 
 
 DEFAULTS_VIEW_MODES: dict[State, ViewMode] = {
@@ -31,8 +29,6 @@ DEFAULTS_VIEW_MODES: dict[State, ViewMode] = {
     State.INTEGRITY_ISSUES: ViewMode.INTEGRITY_ISSUES,
     State.DATA_ISSUES: ViewMode.DATA_ISSUES,
     State.VALIDATED: ViewMode.SCORES,
-    State.SCORES_COMPUTED: ViewMode.SCORES,
-    State.CORRECTIONS_GENERATED: ViewMode.CORRECTIONS,
 }
 
 ALLOWED_STATES: dict[ViewMode, list[State]] = {
@@ -43,11 +39,8 @@ ALLOWED_STATES: dict[ViewMode, list[State]] = {
         State.INTEGRITY_ISSUES,
         State.DATA_ISSUES,
         State.VALIDATED,
-        State.SCORES_COMPUTED,
-        State.CORRECTIONS_GENERATED,
     ],
-    ViewMode.SCORES: [State.VALIDATED, State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED],
-    ViewMode.CORRECTIONS: [State.CORRECTIONS_GENERATED],
+    ViewMode.SCORES: [State.VALIDATED],
 }
 
 
@@ -55,18 +48,22 @@ class MainArea(QStackedWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._parent: McqCorrectorMainWindow = parent  # type: ignore
+
         self.default_view = DefaultView(self)
         self.addWidget(self.default_view)
+
         self.integrity_view = IntegrityView(self)
         self.addWidget(self.integrity_view)
+
         self.data_view = DataView(self)
         self.addWidget(self.data_view)
+
         self.search_view = SearchView(self)
         self.addWidget(self.search_view)
+
         self.scores_view = ScoresView(self)
         self.addWidget(self.scores_view)
-        self.corrections_view = CorrectionsView(self)
-        self.addWidget(self.corrections_view)
+
         self._view_mode: ViewMode = ViewMode.DEFAULT
 
     @property
@@ -108,7 +105,7 @@ class MainArea(QStackedWidget):
         self._set_enabled(self._parent.menuScores, STATE.state >= State.VALIDATED)
 
         # Actions that make sense only once the scores have been computed.
-        is_score_computed = STATE.state >= State.SCORES_COMPUTED
+        is_score_computed = STATE.scores is not None
         self._set_enabled(self._parent.menu_Corrections, is_score_computed)
         for action in [
             self._parent.action_Refresh_scores,
@@ -148,8 +145,8 @@ class MainArea(QStackedWidget):
                 ...  # TODO
             case ViewMode.SCORES:
                 ...  # TODO
-            case ViewMode.CORRECTIONS:
-                ...  # TODO
+            # case ViewMode.CORRECTIONS:
+            #     ...  # TODO
 
             case _:
                 raise NotImplementedError

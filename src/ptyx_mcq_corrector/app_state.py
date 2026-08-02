@@ -1,10 +1,9 @@
 import tomllib
-from enum import Enum, auto, IntEnum
+from enum import IntEnum
 from pathlib import Path
 from typing import Any, Iterator, TypedDict
 
 from ptyx_mcq.scan.data.students import Student
-from ptyx_mcq.scan.scores import scores_manager
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from tomli_w import dumps
 
@@ -26,14 +25,15 @@ class State(IntEnum):
     INTEGRITY_ISSUES = 2
     DATA_ISSUES = 3
     VALIDATED = 4
-    SCORES_COMPUTED = 5
-    CORRECTIONS_GENERATED = 6
+    # SCORES_COMPUTED = 5
+    # CORRECTIONS_GENERATED = 6
 
 
 class Cache(TypedDict, total=False):
     parser: MCQPictureParser
     integrity_check: IntegrityCheckResult
     data_check: DataCheckResult
+    scores: dict[Student, float | str]
 
 
 class InvalidFileError(OSError):
@@ -89,15 +89,29 @@ class AppState:
         except KeyError:  # Update the parser.
             return self._cache.setdefault("parser", MCQPictureParser(current_file))
 
-    def generate_scores(self) -> None:
+    @property
+    def scores(self) -> dict[Student, float | str] | None:
         if self.state < State.VALIDATED:
-            return
+            return None
+        try:
+            return self._cache["scores"]
+        except KeyError:
+            parser = self.parser
+            assert parser is not None
+            parser.scores_manager.calculate_scores()
+            self._cache["scores"] = parser.scores_manager.class_scores
+        return self._cache["scores"]
+
+    def reset_scores(self) -> None:
+        del self._cache["scores"]
+
+    def generate_spreadsheets(self) -> None:
+        if self.state < State.VALIDATED:
+            return None
         parser = self.parser
         assert parser is not None
-        scores_manager = self.parser.scores_manager
-        scores_manager.calculate_scores()
-        scores_manager.generate_csv_file()
-        scores_manager.generate_xlsx_file()
+        parser.scores_manager.generate_csv_file()
+        parser.scores_manager.generate_xlsx_file()
 
     @property
     def students(self) -> list[Student]:

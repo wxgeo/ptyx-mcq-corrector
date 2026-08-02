@@ -20,7 +20,6 @@ from PyQt6.QtCore import QEvent, QObject, QTimer
 
 
 from ptyx_mcq.scan.data.students import Student
-from ptyx_mcq.tools.parse_config.subtypes import StudentName, StudentId
 
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.views.data_issues.page_displayer import PageDisplayer
@@ -32,22 +31,6 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------------
 # The main widget
 # --------------------------------------------------------------------------
-
-
-def student_to_text(student: Student) -> str:
-    if student.name:
-        return f"{student.name} ({student.id})"
-    return student.id
-
-
-def student_from_text(text: str) -> Student:
-    match text.split("("):
-        case name, id_:
-            assert name.endswith(" ")
-            assert id_.endswith(")")
-            return Student(name=StudentName(name[:-1]), id=StudentId(id_[:-1]))
-        case _:
-            raise ValueError(f"Invalid student name: {text}")
 
 
 class NameStatus(Enum):
@@ -113,21 +96,21 @@ class NameEditor(QWidget):
     def on_text_changed(self, text: str) -> None:
         # self.name_changed.emit(text)
         if text in self.names_suggestions:
-            self._parent.page.pic.student = student_from_text(text)
+            self._parent.page.pic.student = Student.from_text(text)
             self.display_as(NameStatus.VALID)
         else:
             self.display_as(NameStatus.INVALID)
 
     @property
     def names_suggestions(self) -> list[str]:
-        return sorted([student_to_text(student) for student in STATE.students])
+        return sorted([student.to_text() for student in STATE.students])
 
     def update_suggestions(self):
         model = QStringListModel(self.names_suggestions, self)
         self.completer.setModel(model)
 
     def set_current_student(self, student: Student | None) -> None:
-        self.name_editor.setText("" if student is None else student_to_text(student))
+        self.name_editor.setText("" if student is None else student.to_text())
 
     # def keyPressEvent(self, event):
     #     if event.key() == Qt.Key.Key_Escape:

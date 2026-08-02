@@ -145,6 +145,7 @@ class FileEventsHandler(QObject):
             self.main_window.main_area.data_view.update_issues()
         else:
             self.update_state(State.VALIDATED)
+            self.main_window.main_area.scores_view.udpdate_students_list()
         return True
 
     def refresh_issues(self) -> None:

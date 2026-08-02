@@ -12,7 +12,7 @@ from ptyx_mcq_corrector.issues_widget.issues_model import IssuesModel
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
 from ptyx_mcq_corrector.issues_widget.issues_view import IssuesViewer
 from ptyx_mcq_corrector.views.data_issues.cbx_reviewer import CheckboxesReviewer
-from ptyx_mcq_corrector.views.data_issues.name_editor import NameEditor, student_to_text
+from ptyx_mcq_corrector.views.data_issues.name_editor import NameEditor
 from ptyx_mcq_corrector.tools import update_ui
 
 if TYPE_CHECKING:
@@ -39,20 +39,10 @@ class DataView(EnhancedWidget):
 
         layout = QVBoxLayout()
         self.name_editor = NameEditor(self)
-        size_policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        # size_policy.setHorizontalStretch(0)
-        # size_policy.setVerticalStretch(0)
-        # size_policy.setHeightForWidth(self.name_editor.sizePolicy().hasHeightForWidth())
-        self.name_editor.setSizePolicy(size_policy)
-        # self.name_editor.setObjectName("name_editor")
+        self.name_editor.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.name_editor)
         self.page_view = CheckboxesReviewer(self)
-        size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # size_policy.setHorizontalStretch(0)
-        # size_policy.setVerticalStretch(0)
-        # size_policy.setHeightForWidth(self.page_view.sizePolicy().hasHeightForWidth())
-        self.page_view.setSizePolicy(size_policy)
-        # self.page_view.setObjectName("page_view")
+        self.page_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.page_view)
 
         main_layout.addLayout(layout, 1)
@@ -65,7 +55,7 @@ class DataView(EnhancedWidget):
 
     @staticmethod
     def _name_suggestions() -> list[str]:
-        return sorted([student_to_text(student) for student in STATE.students])
+        return sorted([student.to_text() for student in STATE.students])
 
     def update_view(self):
         self.name_editor.setVisible(Components.NAME_EDITOR in self.components_to_display)
