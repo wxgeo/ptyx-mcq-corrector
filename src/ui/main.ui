@@ -59,7 +59,7 @@
             </widget>
             <widget class="QMenu" name="menuReview">
                 <property name="title">
-                    <string>Review</string>
+                    <string>&amp;Review</string>
                 </property>
                 <addaction name="actionNext"/>
                 <addaction name="actionPrevious"/>
@@ -68,9 +68,33 @@
                 <addaction name="action_Reset_review"/>
                 <addaction name="actionRefresh"/>
             </widget>
+            <widget class="QMenu" name="menuScores">
+                <property name="title">
+                    <string>&amp;Scores</string>
+                </property>
+                <addaction name="action_Get_scores"/>
+                <addaction name="action_Open_in_Spreadsheet"/>
+                <addaction name="action_Refresh_scores"/>
+            </widget>
+            <widget class="QMenu" name="menu_Corrections">
+                <property name="title">
+                    <string>&amp;Corrections</string>
+                </property>
+                <addaction name="action_Get_corrections"/>
+                <addaction name="action_Refresh_corrections"/>
+            </widget>
+            <widget class="QMenu" name="menu_Edit">
+                <property name="title">
+                    <string>&amp;Edit</string>
+                </property>
+                <addaction name="action_Find_and_edit"/>
+            </widget>
             <addaction name="menu_File"/>
+            <addaction name="menu_Edit"/>
             <addaction name="menu_Scan"/>
             <addaction name="menuReview"/>
+            <addaction name="menuScores"/>
+            <addaction name="menu_Corrections"/>
             <addaction name="menu_About"/>
         </widget>
         <widget class="QStatusBar" name="statusbar"/>
@@ -91,9 +115,12 @@
             <addaction name="separator"/>
             <addaction name="actionPrevious"/>
             <addaction name="actionNext"/>
-            <addaction name="separator"/>
             <addaction name="actionValidate"/>
             <addaction name="actionRefresh"/>
+            <addaction name="separator"/>
+            <addaction name="action_Get_scores"/>
+            <addaction name="action_Open_in_Spreadsheet"/>
+            <addaction name="action_Get_corrections"/>
         </widget>
         <action name="action_Open_directory">
             <property name="icon">
@@ -214,13 +241,60 @@
         </action>
         <action name="actionRefresh">
             <property name="icon">
-                <iconset theme="view-refresh"/>
+                <iconset theme="view-refresh">
+                    <normaloff>.</normaloff>.
+                </iconset>
             </property>
             <property name="text">
-                <string>Refresh</string>
+                <string>Re&amp;fresh</string>
             </property>
             <property name="shortcut">
                 <string>Ctrl+R</string>
+            </property>
+        </action>
+        <action name="action_Get_scores">
+            <property name="icon">
+                <iconset theme="accessories-calculator">
+                    <normaloff>.</normaloff>.
+                </iconset>
+            </property>
+            <property name="text">
+                <string>&amp;Get scores</string>
+            </property>
+        </action>
+        <action name="action_Refresh_corrections">
+            <property name="text">
+                <string>&amp;Refresh corrections</string>
+            </property>
+        </action>
+        <action name="action_Open_in_Spreadsheet">
+            <property name="icon">
+                <iconset theme="x-office-spreadsheet">
+                    <normaloff>.</normaloff>.
+                </iconset>
+            </property>
+            <property name="text">
+                <string>&amp;Open in Spreadsheet</string>
+            </property>
+        </action>
+        <action name="action_Find_and_edit">
+            <property name="text">
+                <string>&amp;Find and edit</string>
+            </property>
+        </action>
+        <action name="action_Refresh_scores">
+            <property name="text">
+                <string>&amp;Refresh scores</string>
+            </property>
+        </action>
+        <action name="action_Get_corrections">
+            <property name="icon">
+                <iconset theme="dialog-information">
+                    <normaloff>.</normaloff>.
+                </iconset>
+            </property>
+            <property name="text">
+                <string>&amp;Get corrections</string>
             </property>
         </action>
     </widget>

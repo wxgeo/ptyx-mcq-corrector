@@ -1,9 +1,7 @@
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QStackedWidget, QWidget, QLabel, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QStackedWidget, QWidget, QMenu
 
 from ptyx_mcq_corrector.app_state import STATE, State
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueType
@@ -80,8 +78,19 @@ class MainArea(QStackedWidget):
         assert STATE.state in ALLOWED_STATES[mode], STATE.state
         self._view_mode = mode
 
-    def update_view(self) -> None:
-        # TODO: handle scores' view
+    @classmethod
+    def _set_enabled(cls, menu: QMenu, enabled: bool) -> None:
+        """Enable or disable a QMenu and all its actions, recursively."""
+        menu.setEnabled(enabled)
+        for action in menu.actions():
+            action.setVisible(enabled)
+            action.setEnabled(enabled)
+            submenu = action.menu()
+            if submenu is not None:
+                # recurse into submenus
+                cls._set_enabled(submenu, enabled)
+
+    def _update_menu_bar(self) -> None:
         self._parent.menuReview.setEnabled(self.view_mode != ViewMode.DEFAULT)
         is_review = self.view_mode in (ViewMode.INTEGRITY_ISSUES, ViewMode.DATA_ISSUES)
         for action in [
@@ -93,6 +102,20 @@ class MainArea(QStackedWidget):
         ]:
             action.setVisible(is_review)
             action.setEnabled(is_review)
+        is_validated = STATE.state in (State.VALIDATED, State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED)
+        self._set_enabled(self._parent.menuScores, is_validated)
+        is_score_computed = STATE.state in (State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED)
+        self._set_enabled(self._parent.menu_Corrections, is_score_computed)
+        for action in [
+            self._parent.action_Refresh_scores,
+            self._parent.action_Open_in_Spreadsheet,
+        ]:
+            action.setVisible(is_score_computed)
+            action.setEnabled(is_score_computed)
+
+    def update_view(self) -> None:
+        # TODO: handle scores' view
+        self._update_menu_bar()
         print(self.view_mode)
         match self.view_mode:
             case ViewMode.DEFAULT:
