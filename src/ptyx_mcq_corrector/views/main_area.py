@@ -91,6 +91,7 @@ class MainArea(QStackedWidget):
                 cls._set_enabled(submenu, enabled)
 
     def _update_menu_bar(self) -> None:
+        # Actions that make sense only when fixing issues.
         self._parent.menuReview.setEnabled(self.view_mode != ViewMode.DEFAULT)
         is_review = self.view_mode in (ViewMode.INTEGRITY_ISSUES, ViewMode.DATA_ISSUES)
         for action in [
@@ -102,9 +103,12 @@ class MainArea(QStackedWidget):
         ]:
             action.setVisible(is_review)
             action.setEnabled(is_review)
-        is_validated = STATE.state in (State.VALIDATED, State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED)
-        self._set_enabled(self._parent.menuScores, is_validated)
-        is_score_computed = STATE.state in (State.SCORES_COMPUTED, State.CORRECTIONS_GENERATED)
+
+        # Actions that make sense only once there is no remaining issues.
+        self._set_enabled(self._parent.menuScores, STATE.state >= State.VALIDATED)
+
+        # Actions that make sense only once the scores have been computed.
+        is_score_computed = STATE.state >= State.SCORES_COMPUTED
         self._set_enabled(self._parent.menu_Corrections, is_score_computed)
         for action in [
             self._parent.action_Refresh_scores,

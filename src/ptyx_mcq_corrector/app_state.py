@@ -1,9 +1,10 @@
 import tomllib
-from enum import Enum, auto
+from enum import Enum, auto, IntEnum
 from pathlib import Path
 from typing import Any, Iterator, TypedDict
 
 from ptyx_mcq.scan.data.students import Student
+from ptyx_mcq.scan.scores import scores_manager
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from tomli_w import dumps
 
@@ -17,14 +18,16 @@ from ptyx_mcq_corrector.issues_widget.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
-class State(Enum):
-    NO_SCAN = auto()
-    SCAN_IN_PROGRESS = auto()
-    INTEGRITY_ISSUES = auto()
-    DATA_ISSUES = auto()
-    VALIDATED = auto()
-    SCORES_COMPUTED = auto()
-    CORRECTIONS_GENERATED = auto()
+# Use IntEnum so that States can be ordered and compared:
+# `State.NO_SCAN < State.VALIDATED` for example.
+class State(IntEnum):
+    NO_SCAN = 0
+    SCAN_IN_PROGRESS = 1
+    INTEGRITY_ISSUES = 2
+    DATA_ISSUES = 3
+    VALIDATED = 4
+    SCORES_COMPUTED = 5
+    CORRECTIONS_GENERATED = 6
 
 
 class Cache(TypedDict, total=False):
@@ -85,6 +88,16 @@ class AppState:
             return self._cache["parser"]
         except KeyError:  # Update the parser.
             return self._cache.setdefault("parser", MCQPictureParser(current_file))
+
+    def generate_scores(self) -> None:
+        if self.state < State.VALIDATED:
+            return
+        parser = self.parser
+        assert parser is not None
+        scores_manager = self.parser.scores_manager
+        scores_manager.calculate_scores()
+        scores_manager.generate_csv_file()
+        scores_manager.generate_xlsx_file()
 
     @property
     def students(self) -> list[Student]:

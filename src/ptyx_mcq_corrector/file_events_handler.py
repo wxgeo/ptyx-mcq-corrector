@@ -158,6 +158,16 @@ class FileEventsHandler(QObject):
         print("Scan aborted.")
         return True
 
+    def see_scores(self) -> None:
+        # Compute scores
+        ...
+        # TODO: update view to see scores
+
+    def see_corrections(self) -> None:
+        # Generate pdf
+        ...
+        # TODO: update view to see pdf
+
     # -----------------
     #      Dialogs
     # =================
