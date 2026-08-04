@@ -106,7 +106,6 @@ class MainArea(QStackedWidget):
 
         # Actions that make sense only once the scores have been computed.
         is_score_computed = STATE.scores is not None
-        self._set_enabled(self._parent.menu_Corrections, is_score_computed)
         for action in [
             self._parent.action_Refresh_scores,
             self._parent.action_Open_in_Spreadsheet,

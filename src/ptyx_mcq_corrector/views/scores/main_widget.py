@@ -9,9 +9,11 @@ Optional dependency: PyQt6-QPdf (for actual PDF rendering)
     pip install PyQt6 PyQt6-QPdf
 """
 
+from statistics import mean
 from typing import Iterable
 
 from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -100,12 +102,21 @@ class ScoresView(QWidget):
 
         top_row = QHBoxLayout()
         self.label_left = QLabel("No student selected")
+        self.label_center = QLabel("")
         self.label_right = QLabel("")
-        self.label_left.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.label_right.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.label_right.setAlignment(Qt.AlignmentFlag.AlignRight)
-        top_row.addWidget(self.label_left)
-        top_row.addWidget(self.label_right)
+        # self.label_left.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # top_row.addWidget(self.label_left)
+        # top_row.addWidget(QWidget(self), stretch=1)
+        # top_row.addWidget(self.label_center)
+        # top_row.addWidget(QWidget(self), stretch=1)
+        # top_row.addWidget(self.label_right)
+        self.label_left.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.label_center.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self.label_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        top_row.addWidget(self.label_left, 1)
+        top_row.addWidget(self.label_center, 1)
+        top_row.addWidget(self.label_right, 1)
         main_layout.addLayout(top_row)
 
         self.pdf_or_loading = PdfOrLoadingWidget()
@@ -118,8 +129,46 @@ class ScoresView(QWidget):
     def on_student_selected(self, name: str):
         if not name:
             return
-        self.label_left.setText(f"Student: {name}")
-        self.label_right.setText("Status: Loading")
+        student = Student.from_text(name)
+        self.label_left.setText(f"Student: <b>{student.name}</b>")
+        scores = STATE.scores
+        assert scores is not None
+        values: list[float] = [value for value in scores if isinstance(value, (float, int))]
+        min_score: float | str = min(values, default="")
+        max_score: float | str = max(values, default="")
+        mean_score: float | str = mean(values) if values else ""
+
+        def fmt(v: float | str) -> str:
+            return v if isinstance(v, str) else str(round(v, 2))
+
+        self.label_right.setText(f"Min: {fmt(min_score)} • Max: {fmt(max_score)} • Mean: {fmt(mean_score)}")
+        self._display_score(student)
+
+    def _display_score(self, student: Student) -> None:
+        scores = STATE.scores
+        assert scores is not None
+        score = scores[student]
+        parser = STATE.parser
+        assert parser is not None
+        if isinstance(score, str):
+            color = "darkred"
+            lighter = QColor(color).lighter(300).name()
+            formatted_score = f"<i style='color: darkred'>{score}</i> "
+        else:
+            color = "cornflowerblue"
+            lighter = QColor(color).lighter(150).name()
+            if isinstance(score, float):
+                score = round(score, 2)
+            max_score = parser.scores_manager.max_score
+            formatted_score = f"<b style='color:cornflowerblue'>{score:g}</b> / {max_score:g}"
+
+        self.label_center.setText(f"Score: {formatted_score}")
+        self.label_center.setStyleSheet(
+            f"QLabel{{margin:auto;background:{lighter};padding:5px;border:2px solid {color};border-radius: 9px;}}"
+        )
+        font = self.label_center.font()
+        font.setPointSize(self.label_left.font().pointSize() + 2)  # bump up by 2pt
+        self.label_center.setFont(font)
 
         # Show the loading state first (simulate a lookup / fetch)
         self.pdf_or_loading.show_loading()
@@ -127,7 +176,7 @@ class ScoresView(QWidget):
         # --- Replace this with your real logic ---
         # e.g. look up the PDF path for this student, then call:
         #   self.pdf_or_loading.show_pdf("/path/to/student.pdf")
-        #   self.label_right.setText("Status: Loaded")
+        #   self.label_center.setText("Status: Loaded")
         #
         # For demo purposes we just leave it on "Loading..." since
         # there is no real file to load here.

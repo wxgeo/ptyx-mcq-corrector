@@ -11,12 +11,12 @@ from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget
 
 from ptyx_mcq_corrector import param
 from ptyx_mcq_corrector.about import AboutDialog
+from ptyx_mcq_corrector.app_state import STATE, State
 from ptyx_mcq_corrector.file_events_handler import FileEventsHandler, ResetMode
 from ptyx_mcq_corrector.generated_ui.main_ui import Ui_MainWindow
-from ptyx_mcq_corrector.app_state import STATE, State
-from ptyx_mcq_corrector.views.main_area import MainArea
 from ptyx_mcq_corrector.param import ICON_PATH
 from ptyx_mcq_corrector.scan.scan_manager import ScanManager
+from ptyx_mcq_corrector.views.main_area import MainArea
 
 
 def path_hash(path: Path | str) -> str:
@@ -100,7 +100,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionValidate_all_answers.triggered.connect(self.main_area.data_view.validate_all_answers)
         self.action_Reset_review.triggered.connect(lambda: handler.reset(ResetMode.REVIEW))
         self.actionRefresh.triggered.connect(lambda: handler.refresh_issues())
-
+        self.action_Open_in_Spreadsheet.triggered.connect(lambda: handler.open_in_spreadsheet())
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)
         self.action_About.triggered.connect(self.about)

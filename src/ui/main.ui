@@ -1,320 +1,299 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
-    <class>MainWindow</class>
-    <widget class="QMainWindow" name="MainWindow">
-        <property name="geometry">
-            <rect>
-                <x>0</x>
-                <y>0</y>
-                <width>1117</width>
-                <height>526</height>
-            </rect>
-        </property>
-        <property name="windowTitle">
-            <string>MainWindow</string>
-        </property>
-        <widget class="QWidget" name="centralwidget">
-            <property name="layoutDirection">
-                <enum>Qt::LeftToRight</enum>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout"/>
-        </widget>
-        <widget class="QMenuBar" name="menubar">
-            <property name="geometry">
-                <rect>
-                    <x>0</x>
-                    <y>0</y>
-                    <width>1117</width>
-                    <height>23</height>
-                </rect>
-            </property>
-            <widget class="QMenu" name="menu_File">
-                <property name="title">
-                    <string>&amp;File</string>
-                </property>
-                <widget class="QMenu" name="menu_Recent_files">
-                    <property name="title">
-                        <string>Recent files</string>
-                    </property>
-                    <addaction name="actionEMPTY"/>
-                </widget>
-                <addaction name="action_Open_directory"/>
-                <addaction name="menu_Recent_files"/>
-                <addaction name="action_Close"/>
-                <addaction name="action_Quit"/>
-            </widget>
-            <widget class="QMenu" name="menu_Scan">
-                <property name="title">
-                    <string>&amp;Scan</string>
-                </property>
-                <addaction name="actionScan_documents"/>
-                <addaction name="action_Reset_scan"/>
-                <addaction name="action_Fix_configuration_file"/>
-            </widget>
-            <widget class="QMenu" name="menu_About">
-                <property name="title">
-                    <string>&amp;About</string>
-                </property>
-                <addaction name="action_About"/>
-            </widget>
-            <widget class="QMenu" name="menuReview">
-                <property name="title">
-                    <string>&amp;Review</string>
-                </property>
-                <addaction name="actionNext"/>
-                <addaction name="actionPrevious"/>
-                <addaction name="actionValidate"/>
-                <addaction name="actionValidate_all_answers"/>
-                <addaction name="action_Reset_review"/>
-                <addaction name="actionRefresh"/>
-            </widget>
-            <widget class="QMenu" name="menuScores">
-                <property name="title">
-                    <string>&amp;Scores</string>
-                </property>
-                <addaction name="action_Get_scores"/>
-                <addaction name="action_Open_in_Spreadsheet"/>
-                <addaction name="action_Refresh_scores"/>
-            </widget>
-            <widget class="QMenu" name="menu_Corrections">
-                <property name="title">
-                    <string>&amp;Corrections</string>
-                </property>
-                <addaction name="action_Get_corrections"/>
-                <addaction name="action_Refresh_corrections"/>
-            </widget>
-            <widget class="QMenu" name="menu_Edit">
-                <property name="title">
-                    <string>&amp;Edit</string>
-                </property>
-                <addaction name="action_Find_and_edit"/>
-            </widget>
-            <addaction name="menu_File"/>
-            <addaction name="menu_Edit"/>
-            <addaction name="menu_Scan"/>
-            <addaction name="menuReview"/>
-            <addaction name="menuScores"/>
-            <addaction name="menu_Corrections"/>
-            <addaction name="menu_About"/>
-        </widget>
-        <widget class="QStatusBar" name="statusbar"/>
-        <widget class="QToolBar" name="toolBar">
-            <property name="windowTitle">
-                <string>toolBar</string>
-            </property>
-            <property name="toolButtonStyle">
-                <enum>Qt::ToolButtonTextBesideIcon</enum>
-            </property>
-            <attribute name="toolBarArea">
-                <enum>TopToolBarArea</enum>
-            </attribute>
-            <attribute name="toolBarBreak">
-                <bool>false</bool>
-            </attribute>
-            <addaction name="actionScan_documents"/>
-            <addaction name="separator"/>
-            <addaction name="actionPrevious"/>
-            <addaction name="actionNext"/>
-            <addaction name="actionValidate"/>
-            <addaction name="actionRefresh"/>
-            <addaction name="separator"/>
-            <addaction name="action_Get_scores"/>
-            <addaction name="action_Open_in_Spreadsheet"/>
-            <addaction name="action_Get_corrections"/>
-        </widget>
-        <action name="action_Open_directory">
-            <property name="icon">
-                <iconset theme="document-open">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Select configuration file</string>
-            </property>
-            <property name="shortcut">
-                <string>Ctrl+O</string>
-            </property>
-        </action>
-        <action name="action_Quit">
-            <property name="icon">
-                <iconset theme="application-exit">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Quit</string>
-            </property>
-            <property name="shortcut">
-                <string>Ctrl+Q</string>
-            </property>
-        </action>
-        <action name="actionScan_documents">
-            <property name="icon">
-                <iconset theme="scanner">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>Scan</string>
-            </property>
-            <property name="shortcut">
-                <string>F5</string>
-            </property>
-        </action>
-        <action name="action_Reset_scan">
-            <property name="icon">
-                <iconset theme="document-revert">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Reset scan</string>
-            </property>
-        </action>
-        <action name="action_About">
-            <property name="text">
-                <string>&amp;About</string>
-            </property>
-        </action>
-        <action name="action_Fix_configuration_file">
-            <property name="text">
-                <string>&amp;Fix configuration file</string>
-            </property>
-        </action>
-        <action name="action_Close">
-            <property name="icon">
-                <iconset theme="window-close">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Close</string>
-            </property>
-        </action>
-        <action name="actionEMPTY">
-            <property name="text">
-                <string>EMPTY</string>
-            </property>
-        </action>
-        <action name="actionNext">
-            <property name="icon">
-                <iconset theme="go-next">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Next</string>
-            </property>
-        </action>
-        <action name="actionPrevious">
-            <property name="icon">
-                <iconset theme="go-previous">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Previous</string>
-            </property>
-        </action>
-        <action name="actionValidate">
-            <property name="icon">
-                <iconset theme="dialog-ok">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Validate</string>
-            </property>
-            <property name="shortcut">
-                <string>Ctrl+Return</string>
-            </property>
-        </action>
-        <action name="actionValidate_all_answers">
-            <property name="text">
-                <string>Validate &amp;all answers</string>
-            </property>
-        </action>
-        <action name="action_Reset_review">
-            <property name="text">
-                <string>&amp;Reset review</string>
-            </property>
-        </action>
-        <action name="actionRefresh">
-            <property name="icon">
-                <iconset theme="view-refresh">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>Re&amp;fresh</string>
-            </property>
-            <property name="shortcut">
-                <string>Ctrl+R</string>
-            </property>
-        </action>
-        <action name="action_Get_scores">
-            <property name="icon">
-                <iconset theme="accessories-calculator">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Get scores</string>
-            </property>
-        </action>
-        <action name="action_Refresh_corrections">
-            <property name="text">
-                <string>&amp;Refresh corrections</string>
-            </property>
-        </action>
-        <action name="action_Open_in_Spreadsheet">
-            <property name="icon">
-                <iconset theme="x-office-spreadsheet">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Open in Spreadsheet</string>
-            </property>
-        </action>
-        <action name="action_Find_and_edit">
-            <property name="text">
-                <string>&amp;Find and edit</string>
-            </property>
-        </action>
-        <action name="action_Refresh_scores">
-            <property name="text">
-                <string>&amp;Refresh scores</string>
-            </property>
-        </action>
-        <action name="action_Get_corrections">
-            <property name="icon">
-                <iconset theme="dialog-information">
-                    <normaloff>.</normaloff>.
-                </iconset>
-            </property>
-            <property name="text">
-                <string>&amp;Get corrections</string>
-            </property>
-        </action>
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1117</width>
+    <height>526</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout"/>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1117</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <widget class="QMenu" name="menu_Recent_files">
+     <property name="title">
+      <string>Recent files</string>
+     </property>
+     <addaction name="actionEMPTY"/>
     </widget>
-    <resources/>
-    <connections>
-        <connection>
-            <sender>action_Quit</sender>
-            <signal>triggered()</signal>
-            <receiver>MainWindow</receiver>
-            <slot>close()</slot>
-            <hints>
-                <hint type="sourcelabel">
-                    <x>-1</x>
-                    <y>-1</y>
-                </hint>
-                <hint type="destinationlabel">
-                    <x>558</x>
-                    <y>262</y>
-                </hint>
-            </hints>
-        </connection>
-    </connections>
+    <addaction name="action_Open_directory"/>
+    <addaction name="menu_Recent_files"/>
+    <addaction name="action_Close"/>
+    <addaction name="action_Quit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Scan">
+    <property name="title">
+     <string>&amp;Scan</string>
+    </property>
+    <addaction name="actionScan_documents"/>
+    <addaction name="action_Reset_scan"/>
+    <addaction name="action_Fix_configuration_file"/>
+   </widget>
+   <widget class="QMenu" name="menu_About">
+    <property name="title">
+     <string>&amp;About</string>
+    </property>
+    <addaction name="action_About"/>
+   </widget>
+   <widget class="QMenu" name="menuReview">
+    <property name="title">
+     <string>&amp;Review</string>
+    </property>
+    <addaction name="actionNext"/>
+    <addaction name="actionPrevious"/>
+    <addaction name="actionValidate"/>
+    <addaction name="actionValidate_all_answers"/>
+    <addaction name="action_Reset_review"/>
+    <addaction name="actionRefresh"/>
+   </widget>
+   <widget class="QMenu" name="menuScores">
+    <property name="title">
+     <string>&amp;Scores</string>
+    </property>
+    <addaction name="action_Open_in_Spreadsheet"/>
+    <addaction name="separator"/>
+    <addaction name="action_Refresh_scores"/>
+    <addaction name="action_Refresh_corrections"/>
+   </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <addaction name="action_Find_and_edit"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Edit"/>
+   <addaction name="menu_Scan"/>
+   <addaction name="menuReview"/>
+   <addaction name="menuScores"/>
+   <addaction name="menu_About"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionScan_documents"/>
+   <addaction name="separator"/>
+   <addaction name="actionPrevious"/>
+   <addaction name="actionNext"/>
+   <addaction name="actionValidate"/>
+   <addaction name="actionRefresh"/>
+   <addaction name="separator"/>
+   <addaction name="action_Open_in_Spreadsheet"/>
+  </widget>
+  <action name="action_Open_directory">
+   <property name="icon">
+    <iconset theme="document-open">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Select configuration file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="action_Quit">
+   <property name="icon">
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionScan_documents">
+   <property name="icon">
+    <iconset theme="scanner">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>Scan</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="action_Reset_scan">
+   <property name="icon">
+    <iconset theme="document-revert">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Reset scan</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_Fix_configuration_file">
+   <property name="text">
+    <string>&amp;Fix configuration file</string>
+   </property>
+  </action>
+  <action name="action_Close">
+   <property name="icon">
+    <iconset theme="window-close">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="actionEMPTY">
+   <property name="text">
+    <string>EMPTY</string>
+   </property>
+  </action>
+  <action name="actionNext">
+   <property name="icon">
+    <iconset theme="go-next">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Next</string>
+   </property>
+  </action>
+  <action name="actionPrevious">
+   <property name="icon">
+    <iconset theme="go-previous">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Previous</string>
+   </property>
+  </action>
+  <action name="actionValidate">
+   <property name="icon">
+    <iconset theme="dialog-ok">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Validate</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Return</string>
+   </property>
+  </action>
+  <action name="actionValidate_all_answers">
+   <property name="text">
+    <string>Validate &amp;all answers</string>
+   </property>
+  </action>
+  <action name="action_Reset_review">
+   <property name="text">
+    <string>&amp;Reset review</string>
+   </property>
+  </action>
+  <action name="actionRefresh">
+   <property name="icon">
+    <iconset theme="view-refresh">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>Re&amp;fresh</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="action_Get_scores">
+   <property name="icon">
+    <iconset theme="accessories-calculator">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Get scores</string>
+   </property>
+  </action>
+  <action name="action_Refresh_corrections">
+   <property name="text">
+    <string>&amp;Refresh corrections</string>
+   </property>
+  </action>
+  <action name="action_Open_in_Spreadsheet">
+   <property name="icon">
+    <iconset theme="x-office-spreadsheet">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Open in Spreadsheet</string>
+   </property>
+  </action>
+  <action name="action_Find_and_edit">
+   <property name="text">
+    <string>&amp;Find and edit</string>
+   </property>
+  </action>
+  <action name="action_Refresh_scores">
+   <property name="text">
+    <string>&amp;Refresh scores</string>
+   </property>
+  </action>
+  <action name="action_Get_corrections">
+   <property name="icon">
+    <iconset theme="dialog-information">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Get corrections</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>action_Quit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>558</x>
+     <y>262</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

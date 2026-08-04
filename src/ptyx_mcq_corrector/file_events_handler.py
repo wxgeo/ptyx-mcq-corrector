@@ -1,3 +1,4 @@
+import subprocess
 import threading
 from enum import StrEnum
 from pathlib import Path
@@ -159,15 +160,11 @@ class FileEventsHandler(QObject):
         print("Scan aborted.")
         return True
 
-    def see_scores(self) -> None:
-        # Compute scores
-        ...
-        # TODO: update view to see scores
-
-    def see_corrections(self) -> None:
-        # Generate pdf
-        ...
-        # TODO: update view to see pdf
+    def open_in_spreadsheet(self) -> None:
+        parser = STATE.parser
+        assert parser is not None
+        STATE.generate_spreadsheets()
+        subprocess.run(["xdg-open", parser.scan_data.files.xlsx_scores])
 
     # -----------------
     #      Dialogs
