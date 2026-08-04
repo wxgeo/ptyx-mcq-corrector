@@ -11,7 +11,7 @@ Optional dependency: PyQt6-QPdf (for actual PDF rendering)
 
 from typing import Iterable
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -22,8 +22,8 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QSizePolicy,
 )
-from ptyx_mcq.scan.data.students import Student
 
+from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.custom_widgets.collapsible_sidebar import CollapsibleSidebar
 
@@ -71,14 +71,27 @@ class PdfOrLoadingWidget(QStackedWidget):
         self.setCurrentIndex(1)
 
 
+class StudentsWidget(QListWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+    def sizeHint(self) -> QSize:
+        size = super().sizeHint()
+        bar = self.verticalScrollBar()
+        assert bar is not None
+        width = self.sizeHintForColumn(0) + 2 * self.frameWidth() + bar.sizeHint().width()
+        return QSize(max(size.width(), width), size.height())
+
+
 class ScoresView(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         root_layout = QHBoxLayout(self)
-        self.students_list = QListWidget(self)
+        self.students_list = StudentsWidget(self)
         # --- Left: generic sidebar, filled with a student list ---
         self.sidebar = CollapsibleSidebar("Students", self.students_list, parent=self)
-        self.sidebar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.sidebar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # self.students_list.setParent(self.sidebar)
         root_layout.addWidget(self.sidebar)
 
         # --- Main area ---
@@ -121,6 +134,7 @@ class ScoresView(QWidget):
 
     def udpdate_students_list(self):
         self._update_students_list(STATE.scores)
+        self.sidebar.update_width()
 
     def _update_students_list(self, students: Iterable[Student]):
         """Replace all items in list_widget without firing currentTextChanged mid-update."""

@@ -80,16 +80,25 @@ class CollapsibleSidebar(QWidget):
         Duration of the slide animation.
     """
 
+    MARGIN = 4
+
     def __init__(
-        self, title, content_widget, expanded_width=200, collapsed_width=28, animation_ms=180, parent=None
+        self,
+        title: str,
+        content_widget: QWidget,
+        max_expanded_width: int = 400,
+        collapsed_width: int = 28,
+        animation_ms: int = 180,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
 
-        self.expanded_width = expanded_width
+        self.max_expanded_width = max_expanded_width
         self.collapsed_width = collapsed_width
         self._collapsed = False
+        self.content_widget = content_widget
 
-        self.setFixedWidth(self.expanded_width)
+        self.update_width()
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -101,8 +110,8 @@ class CollapsibleSidebar(QWidget):
         # --- Expanded page: header (title + collapse arrow) + content ---
         expanded_page = QWidget()
         expanded_layout = QVBoxLayout(expanded_page)
-        expanded_layout.setContentsMargins(4, 4, 4, 4)
-        expanded_layout.setSpacing(4)
+        expanded_layout.setContentsMargins(self.MARGIN, self.MARGIN, self.MARGIN, self.MARGIN)
+        expanded_layout.setSpacing(self.MARGIN)
 
         header = QHBoxLayout()
         header.addWidget(QLabel(f"<b>{title}</b>"))
@@ -133,6 +142,14 @@ class CollapsibleSidebar(QWidget):
         self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
         self._animation.valueChanged.connect(lambda v: self.setFixedWidth(int(v)))
 
+    def update_width(self) -> None:
+        self.setFixedWidth(self.preferred_width)
+
+    @property
+    def preferred_width(self):
+        self.content_widget.updateGeometry()
+        return min(self.content_widget.sizeHint().width() + 2 * self.MARGIN, self.max_expanded_width)
+
     def _animate_to(self, target_width):
         self._animation.stop()
         self._animation.setStartValue(self.width())
@@ -159,4 +176,4 @@ class CollapsibleSidebar(QWidget):
             return
         self._collapsed = False
         self.stack.setCurrentIndex(0)  # show content immediately, then grow into it
-        self._animate_to(self.expanded_width)
+        self._animate_to(self.preferred_width)

@@ -5,15 +5,14 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 
 from ptyx_mcq.scan.data.documents import Page
-
-from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.app_state import STATE
-from ptyx_mcq_corrector.issues_widget.issues_model import IssuesModel
+from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
+from ptyx_mcq_corrector.issues_widget.issues_model import IssuesModel
 from ptyx_mcq_corrector.issues_widget.issues_view import IssuesViewer
+from ptyx_mcq_corrector.tools import update_ui
 from ptyx_mcq_corrector.views.data_issues.cbx_reviewer import CheckboxesReviewer
 from ptyx_mcq_corrector.views.data_issues.name_editor import NameEditor
-from ptyx_mcq_corrector.tools import update_ui
 
 if TYPE_CHECKING:
     pass
@@ -92,6 +91,7 @@ class DataView(EnhancedWidget):
                 self.issues_viewer.move_to_next_index()
 
     def validate_all_answers(self):
+        print("validating all ambiguous answers issues")
         for issue in self.issues_model.issues:
             if issue.type == IssueType.AMBIGUOUS_ANSWERS:
                 self.issues_model.validate(issue.index)

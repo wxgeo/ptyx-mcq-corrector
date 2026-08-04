@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Mapping
+from typing import Mapping, Generator
 
 from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
+
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
-
 from ptyx_mcq_corrector.app_state import AppState
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
 
@@ -60,6 +60,16 @@ def _add_category(root: QStandardItem, issues_type: IssueType, results: FoundIss
     assert root is not None
 
 
+def _items_walker(model: QStandardItemModel):
+    root = model.invisibleRootItem()
+    stack: list[QStandardItem | None] = [root]
+    while stack:
+        item = stack.pop()
+        if item is not None:
+            yield item
+            stack.extend((item.child(row) for row in range(item.rowCount())))
+
+
 class IssuesModel(QStandardItemModel):
     def __init__(self, state: "AppState"):
         super().__init__()
@@ -111,6 +121,7 @@ class IssuesModel(QStandardItemModel):
         for issues_type, results in categories.items():
             assert root is not None
             _add_category(root, issues_type, results)
+        print("model filled:", self.rowCount())
         return True
 
     def validate(self, index: QModelIndex) -> bool:
@@ -128,12 +139,14 @@ class IssuesModel(QStandardItemModel):
                     print("Issue does not seem to be fixed yet.")
         return False
 
+    def _walk(self) -> Generator[QStandardItem]:
+        return _items_walker(self)
+
     @property
     def issues(self) -> list[IssueInfo]:
         issues: list[IssueInfo] = []
-        for row in range(self.rowCount()):
-            item = self.item(row)
-            assert item is not None
+        print(self.rowCount())
+        for item in self._walk():
             issue: IssueInfo | None = item.data(ISSUE_ROLE)
             if isinstance(issue, IssueInfo):
                 issues.append(issue)
