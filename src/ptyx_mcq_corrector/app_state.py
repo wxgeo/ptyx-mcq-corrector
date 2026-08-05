@@ -3,16 +3,16 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any, Iterator, TypedDict
 
-from ptyx_mcq.scan.data.students import Student
-from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from tomli_w import dumps
 
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
-
+from ptyx_mcq.scan.data.students import Student
+from ptyx_mcq.scan.scan_doc import MCQPictureParser
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId
+from ptyx_mcq_corrector.correction.corrections_manager import CorrectionsManager
 from ptyx_mcq_corrector.issues_widget.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
@@ -55,6 +55,7 @@ class AppState:
         self._recent_files: list[Path] = recent_files or []
         self._reset_state()
         self._current_file = current_file
+        self.corrections_manager = CorrectionsManager(self)
 
     def _reset_state(self) -> None:
         """
@@ -100,6 +101,7 @@ class AppState:
             assert parser is not None
             parser.scores_manager.calculate_scores()
             self._cache["scores"] = parser.scores_manager.class_scores
+            self.corrections_manager.pregenerate_all_docs()
         return self._cache["scores"]
 
     def reset_scores(self) -> None:

@@ -139,7 +139,7 @@ class IssuesModel(QStandardItemModel):
                     print("Issue does not seem to be fixed yet.")
         return False
 
-    def _walk(self) -> Generator[QStandardItem]:
+    def _walk(self) -> Generator[QStandardItem, None, None]:
         return _items_walker(self)
 
     @property

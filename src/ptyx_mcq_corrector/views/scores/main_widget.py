@@ -9,6 +9,7 @@ Optional dependency: PyQt6-QPdf (for actual PDF rendering)
     pip install PyQt6 PyQt6-QPdf
 """
 
+from pathlib import Path
 from statistics import mean
 from typing import Iterable
 
@@ -25,6 +26,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 
+from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.custom_widgets.collapsible_sidebar import CollapsibleSidebar
@@ -55,7 +57,9 @@ class PdfOrLoadingWidget(QStackedWidget):
         if PDF_SUPPORT:
             self.pdf_document = QPdfDocument(self)
             self.pdf_view = QPdfView(self)
+            self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
             self.pdf_view.setDocument(self.pdf_document)
+            self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
             self.addWidget(self.pdf_view)
         else:
             self.pdf_view = QLabel("PDF support not installed.\nRun: pip install PyQt6-QPdf")
@@ -67,10 +71,16 @@ class PdfOrLoadingWidget(QStackedWidget):
     def show_loading(self):
         self.setCurrentIndex(0)
 
-    def show_pdf(self, path: str):
+    def show_pdf(self, path: Path | str) -> None:
         if PDF_SUPPORT:
-            self.pdf_document.load(path)
+            self.pdf_document.load(str(path))
         self.setCurrentIndex(1)
+
+    def ask_for_pdf(self, doc: Document) -> None:
+        if not (path := doc.correction_path).is_file():
+            STATE.corrections_manager.generate_doc_now(doc)
+        else:
+            self.show_pdf(path)
 
 
 class StudentsWidget(QListWidget):
@@ -133,7 +143,7 @@ class ScoresView(QWidget):
         self.label_left.setText(f"Student: <b>{student.name}</b>")
         scores = STATE.scores
         assert scores is not None
-        values: list[float] = [value for value in scores if isinstance(value, (float, int))]
+        values: list[float] = [value for value in scores.values() if isinstance(value, (float, int))]
         min_score: float | str = min(values, default="")
         max_score: float | str = max(values, default="")
         mean_score: float | str = mean(values) if values else ""
@@ -141,8 +151,15 @@ class ScoresView(QWidget):
         def fmt(v: float | str) -> str:
             return v if isinstance(v, str) else str(round(v, 2))
 
-        self.label_right.setText(f"Min: {fmt(min_score)} • Max: {fmt(max_score)} • Mean: {fmt(mean_score)}")
+        self.label_right.setText(
+            f"<i>Min:</i> <span style='color:darkred'>{fmt(min_score)}</span> "
+            f"• <i>Max:</i> <span style='color:darkgreen'>{fmt(max_score)}</span> "
+            f"• <i>Mean:</i> <span style='color:cornflowerblue'>{fmt(mean_score)}</span>"
+        )
         self._display_score(student)
+        doc = STATE.parser.scan_data.get_student_doc(student)
+        if doc is not None:
+            self.pdf_or_loading.ask_for_pdf(doc)
 
     def _display_score(self, student: Student) -> None:
         scores = STATE.scores
@@ -153,7 +170,7 @@ class ScoresView(QWidget):
         if isinstance(score, str):
             color = "darkred"
             lighter = QColor(color).lighter(300).name()
-            formatted_score = f"<i style='color: darkred'>{score}</i> "
+            formatted_score = f"<b style='color: darkred'>{score}</b> "
         else:
             color = "cornflowerblue"
             lighter = QColor(color).lighter(150).name()
@@ -162,7 +179,7 @@ class ScoresView(QWidget):
             max_score = parser.scores_manager.max_score
             formatted_score = f"<b style='color:cornflowerblue'>{score:g}</b> / {max_score:g}"
 
-        self.label_center.setText(f"Score: {formatted_score}")
+        self.label_center.setText(f"<i>Score:</i> {formatted_score}")
         self.label_center.setStyleSheet(
             f"QLabel{{margin:auto;background:{lighter};padding:5px;border:2px solid {color};border-radius: 9px;}}"
         )
