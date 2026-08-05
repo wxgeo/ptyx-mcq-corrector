@@ -48,7 +48,7 @@ class PdfOrLoadingWidget(QStackedWidget):
         super().__init__()
 
         # Page 0: Loading placeholder
-        self.loading_label = QLabel("Loading...")
+        self.loading_label = QLabel("")
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loading_label.setStyleSheet("font-size: 18px; color: gray;")
         self.addWidget(self.loading_label)
@@ -68,7 +68,8 @@ class PdfOrLoadingWidget(QStackedWidget):
 
         self.setCurrentIndex(0)  # start on "Loading..."
 
-    def show_loading(self):
+    def show_loading(self, text=""):
+        self.loading_label.setText(text)
         self.setCurrentIndex(0)
 
     def show_pdf(self, path: Path | str) -> None:
@@ -135,6 +136,7 @@ class ScoresView(QWidget):
         root_layout.addWidget(main_area, stretch=1)
 
         self.students_list.currentTextChanged.connect(self.on_student_selected)
+        STATE.corrections_manager.docs_generator.document_ready.connect(self.on_document_ready)
 
     def on_student_selected(self, name: str):
         if not name:
@@ -161,23 +163,45 @@ class ScoresView(QWidget):
         if doc is not None:
             self.pdf_or_loading.ask_for_pdf(doc)
 
+    @property
+    def current_student(self) -> Student | None:
+        selected_item = self.students_list.currentItem()
+        if selected_item is None:
+            return None
+        return Student.from_text(selected_item.text())
+
+    def on_document_ready(
+        self,
+        doc_id: int,
+        answer: object,
+    ):
+        if (student := self.current_student) is None:
+            return
+        if (doc := STATE.parser.scan_data.get_student_doc(student)) is None:
+            return
+        if doc.doc_id != doc_id:
+            return
+        if self.pdf_or_loading.pdf_document.status() != QPdfDocument.Status.Ready:
+            self.pdf_or_loading.ask_for_pdf(doc)
+
     def _display_score(self, student: Student) -> None:
         scores = STATE.scores
         assert scores is not None
         score = scores[student]
         parser = STATE.parser
         assert parser is not None
-        if isinstance(score, str):
-            color = "darkred"
-            lighter = QColor(color).lighter(300).name()
-            formatted_score = f"<b style='color: darkred'>{score}</b> "
-        else:
+        has_score = not isinstance(score, str)
+        if has_score:
             color = "cornflowerblue"
             lighter = QColor(color).lighter(150).name()
             if isinstance(score, float):
                 score = round(score, 2)
             max_score = parser.scores_manager.max_score
             formatted_score = f"<b style='color:cornflowerblue'>{score:g}</b> / {max_score:g}"
+        else:
+            color = "darkred"
+            lighter = QColor(color).lighter(300).name()
+            formatted_score = f"<b style='color: darkred'>{score}</b> "
 
         self.label_center.setText(f"<i>Score:</i> {formatted_score}")
         self.label_center.setStyleSheet(
@@ -188,7 +212,8 @@ class ScoresView(QWidget):
         self.label_center.setFont(font)
 
         # Show the loading state first (simulate a lookup / fetch)
-        self.pdf_or_loading.show_loading()
+        self.pdf_or_loading.show_loading("Loading..." if has_score else "")
+        # self.pdf_or_loading.setEnabled(has_score)
 
         # --- Replace this with your real logic ---
         # e.g. look up the PDF path for this student, then call:

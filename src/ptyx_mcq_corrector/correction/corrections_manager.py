@@ -2,10 +2,11 @@ from typing import TYPE_CHECKING
 
 from ptyx_mcq.scan.data.amend import amend_doc, get_max_score_per_question
 from ptyx_mcq.scan.data.documents import Document
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.priority_doc_pool import DocumentGeneratorPool
 
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.app_state import AppState
 
 
 def generate_correction_if_needed(payload: dict) -> None:
@@ -23,33 +24,23 @@ def generate_correction_if_needed(payload: dict) -> None:
 class CorrectionsManager:
     def __init__(self, state: "AppState"):
         self._state = state
-        self._docs_generator = DocumentGeneratorPool(generate_correction_if_needed)
-        self._docs_generator.document_failed.connect(self.on_document_failed)
-        self._docs_generator.document_ready.connect(self.on_document_ready)
+        self.docs_generator = DocumentGeneratorPool(generate_correction_if_needed)
+        self.docs_generator.document_failed.connect(self.on_document_failed)
+        self.docs_generator.document_ready.connect(self.on_document_ready)
 
     def pregenerate_all_docs(self) -> None:
         max_scores = get_max_score_per_question(self._state.parser.config)
         doc: Document
-        for doc in self._state.parser.scan_data.used_docs_index.values():
+        for doc in self._state.parser.scan_data.sorted_by("student_name"):
             if not doc.correction_path.is_file():
-                self._docs_generator.generate(str(doc.doc_id), {"doc": doc, "max_scores": max_scores})
+                self.docs_generator.generate(doc.doc_id, {"doc": doc, "max_scores": max_scores})
 
     def generate_doc_now(self, doc: Document) -> None:
         max_scores = get_max_score_per_question(self._state.parser.config)
-        self._docs_generator.generate(
-            str(doc.doc_id), {"doc": doc, "max_scores": max_scores}, prioritize=True
-        )
+        self.docs_generator.generate(doc.doc_id, {"doc": doc, "max_scores": max_scores}, prioritize=True)
 
-    def on_document_failed(
-        self,
-        doc_id: str,
-        err: str,
-    ):
+    def on_document_failed(self, doc_id: DocumentId, err: str):
         print(f"doc {doc_id} generation failed: '{err}'!")
 
-    def on_document_ready(
-        self,
-        doc_id: str,
-        answer: object,
-    ):
+    def on_document_ready(self, doc_id: DocumentId, answer: object):
         print(f"doc {doc_id} ready!")
