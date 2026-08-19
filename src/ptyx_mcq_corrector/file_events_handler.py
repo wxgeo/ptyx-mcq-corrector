@@ -141,6 +141,7 @@ class FileEventsHandler(QObject):
     def on_scan_ended(self) -> bool:
         if STATE.integrity_issues_detected:
             self.update_state(State.INTEGRITY_ISSUES)
+            self.main_window.main_area.integrity_view.update_issues()
         elif STATE.data_issues_detected:
             self.update_state(State.DATA_ISSUES)
             self.main_window.main_area.data_view.update_issues()
@@ -165,6 +166,12 @@ class FileEventsHandler(QObject):
         assert parser is not None
         STATE.generate_spreadsheets()
         subprocess.run(["xdg-open", parser.scan_data.files.xlsx_scores])
+
+    def refresh_scores(self) -> None:
+        STATE.reset_scores()
+
+    def refresh_corrections(self) -> None:
+        STATE.corrections_manager.pregenerate_all_docs(force_refresh=True)
 
     # -----------------
     #      Dialogs

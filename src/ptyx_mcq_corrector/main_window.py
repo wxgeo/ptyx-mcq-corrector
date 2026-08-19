@@ -101,6 +101,8 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.action_Reset_review.triggered.connect(lambda: handler.reset(ResetMode.REVIEW))
         self.actionRefresh.triggered.connect(lambda: handler.refresh_issues())
         self.action_Open_in_Spreadsheet.triggered.connect(lambda: handler.open_in_spreadsheet())
+        self.action_Refresh_scores.triggered.connect(lambda: handler.refresh_scores())
+        self.action_Refresh_corrections.triggered.connect(lambda: handler.refresh_corrections())
         self.action_Close.triggered.connect(lambda: handler.close_file())
         self.menu_File.aboutToShow.connect(self._update_recent_files_menu)
         self.action_About.triggered.connect(self.about)

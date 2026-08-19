@@ -135,17 +135,24 @@ class DocumentGeneratorPool(QObject):
         super().__init__(parent)
         self._num_workers = num_workers or max(1, (mp.cpu_count() or 2) - 1)
 
+        # This is the supply chain.
+        # It lives in the main process, but will be accessed from several threads, so it has to be thread-safe.
+        self._pending = TaskQueue()
+        # This is the line of production, used to send data to the workers living in other processes.
         # mp.Queue is fine here: at any moment it holds at most
         # `num_workers` un-started tasks (enforced by the semaphore below),
         # so we never need to reorder *it* -- only the heap in front of it.
         self._task_queue: "TaskQueueType" = mp.Queue()
+        # Of course, it's nice to have some information back too.
         self._result_queue: "ResultQueueType" = mp.Queue()
-        self._pending = TaskQueue()
 
         self._cache: Dict[DocumentId, Any] = {}
         self._active: Set[DocumentId] = set()  # doc_ids currently assigned to a worker
         self._state_lock = threading.Lock()
 
+        # The number of currently available workers.
+        # Use a Semaphore: if no worker is currently free, you must wait.
+        # Bound it, to be sure to not release accidentally more workers that available!
         self._slot_semaphore = threading.BoundedSemaphore(self._num_workers)
 
         self._workers = [
@@ -185,6 +192,9 @@ class DocumentGeneratorPool(QObject):
         self._pending.push(doc_id, payload, urgent=prioritize)
 
     def shutdown(self) -> None:
+        """
+        Close all pending tasks, then end the treads.
+        """
         self._stopping = True
         self._pending.close()
         for _ in self._workers:
@@ -227,3 +237,7 @@ class DocumentGeneratorPool(QObject):
                 self.document_ready.emit(doc_id, value)
             else:
                 self.document_failed.emit(doc_id, str(value))
+
+    def reset_cache(self) -> None:
+        """To be able to regenerate documents."""
+        self._cache.clear()

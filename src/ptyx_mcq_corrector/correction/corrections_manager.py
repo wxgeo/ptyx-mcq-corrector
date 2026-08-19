@@ -6,7 +6,7 @@ from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.priority_doc_pool import DocumentGeneratorPool
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.app_state import AppState
+    pass
 
 
 def generate_correction_if_needed(payload: dict) -> None:
@@ -28,10 +28,14 @@ class CorrectionsManager:
         self.docs_generator.document_failed.connect(self.on_document_failed)
         self.docs_generator.document_ready.connect(self.on_document_ready)
 
-    def pregenerate_all_docs(self) -> None:
+    def pregenerate_all_docs(self, force_refresh=True) -> None:
+        if force_refresh:
+            self.docs_generator.reset_cache()
         max_scores = get_max_score_per_question(self._state.parser.config)
         doc: Document
-        for doc in self._state.parser.scan_data.sorted_by("student_name"):
+        for doc in self._state.docs:
+            if force_refresh:
+                doc.correction_path.unlink(missing_ok=True)
             if not doc.correction_path.is_file():
                 self.docs_generator.generate(doc.doc_id, {"doc": doc, "max_scores": max_scores})
 

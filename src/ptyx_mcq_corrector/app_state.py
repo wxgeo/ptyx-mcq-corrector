@@ -9,6 +9,7 @@ from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq.scan.data.conflict_gestion import IntegrityChecker, DataChecker
 from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
 from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
+from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
@@ -122,6 +123,13 @@ class AppState:
             return []
         return parser.scan_data.config.students
 
+    @property
+    def docs(self) -> list[Document]:
+        """Return the list of the documents, sorted by student' name."""
+        if (parser := self.parser) is None:
+            return []
+        return parser.scan_data.sorted_by("student_name")
+
     def has_valid_student_name(self, doc_id: DocumentId) -> bool:
         """
         Test if the document have a valis student name.
@@ -182,8 +190,8 @@ class AppState:
         return (issues := self.data_issues) is not None and not issues.is_ok
 
     def reset_issues(self) -> None:
-        del self._cache["integrity_check"]
-        del self._cache["data_check"]
+        self._cache.pop("integrity_check", None)
+        self._cache.pop("data_check", None)
 
     @property
     def default_dir(self) -> Path:

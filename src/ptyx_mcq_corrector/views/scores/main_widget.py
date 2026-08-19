@@ -175,13 +175,9 @@ class ScoresView(QWidget):
         doc_id: int,
         answer: object,
     ):
-        if (student := self.current_student) is None:
-            return
-        if (doc := STATE.parser.scan_data.get_student_doc(student)) is None:
-            return
-        if doc.doc_id != doc_id:
-            return
-        if self.pdf_or_loading.pdf_document.status() != QPdfDocument.Status.Ready:
+        doc = STATE.parser.scan_data.used_docs_index[doc_id]
+        if doc.student == self.current_student:
+            # The pdf is ready to be displayed now.
             self.pdf_or_loading.ask_for_pdf(doc)
 
     def _display_score(self, student: Student) -> None:
@@ -213,7 +209,6 @@ class ScoresView(QWidget):
 
         # Show the loading state first (simulate a lookup / fetch)
         self.pdf_or_loading.show_loading("Loading..." if has_score else "")
-        # self.pdf_or_loading.setEnabled(has_score)
 
         # --- Replace this with your real logic ---
         # e.g. look up the PDF path for this student, then call:
