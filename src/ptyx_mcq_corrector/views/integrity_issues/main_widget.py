@@ -69,5 +69,5 @@ class IntegrityView(QWidget):
             self._issues_data(CategoryTitle.DUPLICATES, STATE.integrity_issues.duplicates),
             self._issues_data(CategoryTitle.MISSING_PAGES, STATE.integrity_issues.missing_pages),
         )
-        self.issues_viewer.expandAll()
+        self.issues_viewer.update_view()
         self.update_info()

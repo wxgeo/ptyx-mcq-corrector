@@ -39,6 +39,7 @@ class Styliser(QStyledItemDelegate):
 
         item_info: ItemInfo = index.data(ITEM_INFO)
         assert option is not None
+        assert item_info is not None
         if item_info.status == ItemStatus.FAILURE:
             option.palette.setColor(QPalette.ColorRole.Text, StatusColor.FAILURE)
             option.icon = self._pending_icon
@@ -58,6 +59,7 @@ class Styliser(QStyledItemDelegate):
         # Give the icon some room if one was set
         if not option.icon.isNull():
             option.decorationSize = QSize(16, 16)
+        # print("Style applied!", item_info)
 
 
 class ItemsViewer(QTreeView):
@@ -68,9 +70,7 @@ class ItemsViewer(QTreeView):
         self._parent: "DataView" = parent  # type:ignore
         self.setHeaderHidden(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        if styliser is None:
-            styliser = Styliser(self)
-        self.setItemDelegate(styliser)
+        self.styliser: QStyledItemDelegate = Styliser(self) if styliser is None else styliser
         self.current_item: ItemInfo | None = None
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
@@ -127,3 +127,7 @@ class ItemsViewer(QTreeView):
             self.move_to_previous_index()
         else:
             super().keyPressEvent(event)
+
+    def update_view(self):
+        self.setItemDelegate(self.styliser)
+        self.expandAll()

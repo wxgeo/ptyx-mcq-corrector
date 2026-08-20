@@ -150,7 +150,11 @@ class DataView(EnhancedWidget):
 
     def update_issues(self) -> None:
         self.issues_model.update_model(self._name_issues, self._ambiguous_answers)
-        self.issues_viewer.expandAll()
+        for item_info in self.issues_model.selectable_items:
+            print(item_info)
+            item_info.status = ItemStatus.FAILURE
+        print("UPDATE!!!!")
+        self.issues_viewer.update_view()
 
     @property
     def page(self) -> Page:
@@ -175,7 +179,8 @@ class DataView(EnhancedWidget):
 
     @update_ui
     def on_issue_selected(self, item_info: ItemInfo) -> bool:
-        assert item_info is not None
+        if not item_info.selectable:
+            return False
         # STATE.current_issue = item_info.category  # To do at first!
         parser = STATE.parser
         assert parser is not None

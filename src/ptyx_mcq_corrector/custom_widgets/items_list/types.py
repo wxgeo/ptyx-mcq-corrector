@@ -100,6 +100,16 @@ class ItemInfo:
     def selectable(self) -> bool:
         return bool(self.index.flags() & Qt.ItemFlag.ItemIsSelectable)
 
+    def __repr__(self) -> str:
+        return (
+            f"ItemInfo(index=<{self.index.row()}>,"
+            f"type=<{self.type}>,"
+            f"category=<{self.category}>,"
+            f"doc=<{None if self.doc is None else self.doc.doc_id}>,"
+            f"page=<{None if self.page is None else self.page.page_num}>,"
+            f"status=<{self.status}>)"
+        )
+
 
 # @dataclass
 # class Template:
