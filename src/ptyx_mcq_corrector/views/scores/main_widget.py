@@ -28,6 +28,8 @@ from PyQt6.QtWidgets import (
 
 from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
+from ptyx_mcq.tools.parse_config.subtypes import DocumentId
+
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.custom_widgets.collapsible_sidebar import CollapsibleSidebar
 
@@ -159,6 +161,7 @@ class ScoresView(QWidget):
             f"• <i>Mean:</i> <span style='color:cornflowerblue'>{fmt(mean_score)}</span>"
         )
         self._display_score(student)
+        assert STATE.parser is not None
         doc = STATE.parser.scan_data.get_student_doc(student)
         if doc is not None:
             self.pdf_or_loading.ask_for_pdf(doc)
@@ -172,9 +175,10 @@ class ScoresView(QWidget):
 
     def on_document_ready(
         self,
-        doc_id: int,
+        doc_id: DocumentId,
         answer: object,
     ):
+        assert STATE.parser is not None
         doc = STATE.parser.scan_data.used_docs_index[doc_id]
         if doc.student == self.current_student:
             # The pdf is ready to be displayed now.

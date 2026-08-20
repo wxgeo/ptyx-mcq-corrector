@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING
 from ptyx_mcq.scan.data.amend import amend_doc, get_max_score_per_question
 from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
+
 from ptyx_mcq_corrector.priority_doc_pool import DocumentGeneratorPool
 
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.app_state import AppState
 
 
 def generate_correction_if_needed(payload: dict) -> None:
@@ -31,7 +32,9 @@ class CorrectionsManager:
     def pregenerate_all_docs(self, force_refresh=True) -> None:
         if force_refresh:
             self.docs_generator.reset_cache()
-        max_scores = get_max_score_per_question(self._state.parser.config)
+        parser = self._state.parser
+        assert parser is not None
+        max_scores = get_max_score_per_question(parser.config)
         doc: Document
         for doc in self._state.docs:
             if force_refresh:
@@ -40,7 +43,9 @@ class CorrectionsManager:
                 self.docs_generator.generate(doc.doc_id, {"doc": doc, "max_scores": max_scores})
 
     def generate_doc_now(self, doc: Document) -> None:
-        max_scores = get_max_score_per_question(self._state.parser.config)
+        parser = self._state.parser
+        assert parser is not None
+        max_scores = get_max_score_per_question(parser.config)
         self.docs_generator.generate(doc.doc_id, {"doc": doc, "max_scores": max_scores}, prioritize=True)
 
     def on_document_failed(self, doc_id: DocumentId, err: str):

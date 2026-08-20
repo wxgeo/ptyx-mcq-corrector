@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QStackedWidget, QWidget, QMenu
 
 from ptyx_mcq_corrector.app_state import STATE, State
-from ptyx_mcq_corrector.issues_widget.issue_info import IssueType
+
+from ptyx_mcq_corrector.custom_widgets.items_list.types import CategoryTitle
 from ptyx_mcq_corrector.views.default.main_widget import DefaultView
 from ptyx_mcq_corrector.views.integrity_issues.main_widget import IntegrityView
 from ptyx_mcq_corrector.views.scores.main_widget import ScoresView
@@ -121,25 +122,31 @@ class MainArea(QStackedWidget):
             case ViewMode.DEFAULT:
                 self._update_header()
 
-            case ViewMode.INTEGRITY_ISSUES | ViewMode.DATA_ISSUES:
-                issue = STATE.current_issue
-                print(issue)
-                if issue is None:
+            case ViewMode.DATA_ISSUES:
+                item_info = self.data_view.issues_viewer.current_item
+                print(item_info)
+                if item_info is None:
                     self.data_view.page = None
                     self.data_view.components_to_display = Components.CBX_REVIEWER
                 else:
-                    match issue.type:
-                        case IssueType.AMBIGUOUS_ANSWERS:
+                    match item_info.category:
+                        case CategoryTitle.AMBIGUOUS_ANSWERS:
                             self.data_view.components_to_display = Components.CBX_REVIEWER
                             self.data_view.update_view()
-                        case IssueType.NAMES:
+                        case CategoryTitle.NAMES:
                             self.data_view.components_to_display = Components.NAME_EDITOR
                             self.data_view.update_view()
-                        case IssueType.DUPLICATES:
+            case ViewMode.INTEGRITY_ISSUES:
+                item_info = self.data_view.issues_viewer.current_item
+                print(item_info)
+                if item_info is None:
+                    ...  # TODO
+                else:
+                    match item_info.category:
+                        case CategoryTitle.DUPLICATES:
                             ...  # TODO
-                        case IssueType.MISSING_PAGES:
+                        case CategoryTitle.MISSING_PAGES:
                             ...  # TODO
-
             case ViewMode.SEARCH_RESULTS:
                 ...  # TODO
             case ViewMode.SCORES:

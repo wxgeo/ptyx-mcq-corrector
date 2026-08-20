@@ -130,7 +130,6 @@ class FileEventsHandler(QObject):
 
     @update_ui
     def on_scan_started(self) -> bool:
-        STATE.current_issue = None
         self.update_state(State.SCAN_IN_PROGRESS)
         return True
 

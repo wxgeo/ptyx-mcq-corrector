@@ -14,7 +14,6 @@ from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.correction.corrections_manager import CorrectionsManager
-from ptyx_mcq_corrector.issues_widget.issue_info import IssueInfo
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
 
 
@@ -48,7 +47,6 @@ class AppState:
     """
 
     __curent_file: Path | None
-    current_issue: IssueInfo | None
     state: State
     _cache: Cache
 
@@ -63,7 +61,6 @@ class AppState:
         Reset the state, except for the recent files list.
         """
         self._current_file = None
-        self.current_issue = None
         self.state = State.NO_SCAN
         self._cache = Cache()
 

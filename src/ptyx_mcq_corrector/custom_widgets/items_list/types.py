@@ -1,10 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto, StrEnum
-from typing import ClassVar, Any, TypeVar, NewType, NamedTuple, TypedDict, Literal, Self
+from typing import NewType
 
 from PyQt6.QtCore import Qt, QModelIndex
-from PyQt6.QtGui import QColor, QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QTreeView, QStyle
 from ptyx_mcq.scan.data.documents import Document, Page
 
 
@@ -37,7 +35,17 @@ class ItemType(StrEnum):
     PAGE = "page"
 
 
-CategoryTitle = NewType("CategoryTitle", str)
+# CategoryTitle = NewType("CategoryTitle", str)
+
+
+class CategoryTitle(StrEnum):
+    NAMES = "Names issues"
+    AMBIGUOUS_ANSWERS = "Ambiguous answers"
+    MISSING_PAGES = "Missing pages"
+    DUPLICATES = "Duplicates"
+    NONE = ""
+
+
 DocTitle = NewType("DocTitle", str)
 PageTitle = NewType("PageTitle", str)
 
@@ -69,7 +77,7 @@ class DocItemData:
 
 @dataclass
 class CategoryItemData:
-    name: CategoryTitle = CategoryTitle("")
+    name: CategoryTitle = CategoryTitle.NONE
     docs: list[DocItemData] = field(default_factory=list)
     # Indicate if the pages are meant to be displayed. If so, the pages items will be selectable, but not the doc ones.
     # Else, the doc items will be selectable.

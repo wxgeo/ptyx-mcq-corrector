@@ -1,11 +1,9 @@
 from enum import Enum
-from typing import Mapping, Generator
+from typing import Generator
 
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
-from ptyx_mcq.scan.data.conflict_gestion.data_check.check import DataCheckResult
-from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityCheckResult
 from ptyx_mcq.scan.data.documents import Document, Page
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 from ptyx_mcq_corrector.app_state import AppState
@@ -18,7 +16,7 @@ from ptyx_mcq_corrector.custom_widgets.items_list.types import (
     DocTitle,
     PageTitle,
 )
-from ptyx_mcq_corrector.issues_widget.issue_info import IssueType, IssueInfo
+
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
@@ -138,22 +136,6 @@ class ItemsModel(QStandardItemModel):
             doc=doc,
             page=page,
         )
-
-    # TODO: Rewrite this, and move it to the data_issues view, since it is specific to it.
-    def validate(self, index: QModelIndex) -> bool:
-        item_info: ItemInfo = index.data(ITEM_INFO)
-        if item_info.selectable:
-            item = self.itemFromIndex(index)
-            assert item is not None and (parser := self.state.parser) is not None
-            # issue: IssueInfo = item.data(ISSUE_ROLE)
-            if issue.validate_state(parser.scan_data):
-                # Mark the issue as fixed.
-                item.setData(IssueState.FIXED, STATE_ROLE)
-                print("Issue marked as fixed.")
-                return True
-            else:
-                print("Issue does not seem to be fixed yet.")
-        return False
 
     def _walk(self) -> Generator[QStandardItem, None, None]:
         return _items_walker(self)
