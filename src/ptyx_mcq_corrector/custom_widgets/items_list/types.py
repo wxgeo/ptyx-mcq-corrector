@@ -95,10 +95,15 @@ class ItemInfo:
     doc: Document | None = None
     page: Page | None = None
     status: ItemStatus = ItemStatus.DEFAULT
+    match_filter: bool = True
 
     @property
     def selectable(self) -> bool:
         return bool(self.index.flags() & Qt.ItemFlag.ItemIsSelectable)
+
+    @property
+    def text(self) -> str:
+        return self.index.data(Qt.ItemDataRole.DisplayRole)
 
     def __repr__(self) -> str:
         return (

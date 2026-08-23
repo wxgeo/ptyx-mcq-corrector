@@ -22,7 +22,7 @@ from ptyx_mcq.scan.data.documents import Page
 from ptyx_mcq.scan.data.conflict_gestion.data_check.cb_styles import CbxColors, CbxThickness
 from ptyx_mcq.scan.data.questions import CbxState, Answer
 
-from ptyx_mcq_corrector.views.data_issues.page_displayer import PageDisplayer
+from .page_displayer import PageDisplayer
 
 
 class Checkbox:

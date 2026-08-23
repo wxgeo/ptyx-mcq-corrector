@@ -1,17 +1,16 @@
 from typing import TYPE_CHECKING, Callable
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QSortFilterProxyModel
 from PyQt6.QtWidgets import QTreeView, QAbstractItemView, QStyleOptionViewItem, QWidget
 from PyQt6.QtCore import Qt, QModelIndex, QSize
-from PyQt6.QtGui import QColor, QPalette, QFont, QKeyEvent
+from PyQt6.QtGui import QColor, QPalette, QFont, QKeyEvent, QStandardItemModel
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QApplication
 
-from ptyx_mcq_corrector.custom_widgets.items_list.items_model import ItemsModel
 from ptyx_mcq_corrector.custom_widgets.items_list.types import ITEM_INFO, ItemInfo, ItemStatus, ItemType
 
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.views.data_issues.page_reviewer import DataView
+    pass
 
 
 class StatusColor:
@@ -67,7 +66,8 @@ class ItemsViewer(QTreeView):
 
     def __init__(self, parent: QWidget | None, styliser: QStyledItemDelegate | None = None):
         super().__init__(parent)
-        self._parent: "DataView" = parent  # type:ignore
+        assert parent is not None
+        self._parent: QWidget = parent
         self.setHeaderHidden(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.styliser: QStyledItemDelegate = Styliser(self) if styliser is None else styliser
@@ -76,8 +76,10 @@ class ItemsViewer(QTreeView):
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         super().currentChanged(current, previous)
         if (model := self.model()) is not None:
-            assert isinstance(model, ItemsModel)
-            item = model.itemFromIndex(current)
+            if isinstance(model, QSortFilterProxyModel):
+                current = model.mapToSource(current)
+                model = model.sourceModel()
+            item = model.itemFromIndex(current) if isinstance(model, QStandardItemModel) else None
             if item is None:
                 self.current_item = None
             else:

@@ -10,10 +10,11 @@ from ptyx_mcq_corrector.views.default.main_widget import DefaultView
 from ptyx_mcq_corrector.views.integrity_issues.main_widget import IntegrityView
 from ptyx_mcq_corrector.views.scores.main_widget import ScoresView
 from ptyx_mcq_corrector.views.search_results.main_widget import SearchView
+from ptyx_mcq_corrector.views.data_issues.main_widget import DataView
+from ptyx_mcq_corrector.custom_widgets.page_reviewer.page_reviewer import Components
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
-from ptyx_mcq_corrector.views.data_issues.page_reviewer import DataView, Components
 
 
 class ViewMode(IntEnum):

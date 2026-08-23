@@ -11,7 +11,7 @@ A PyQt5 widget that:
 
 import os
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QColor
@@ -22,10 +22,10 @@ from PyQt6.QtCore import QEvent, QObject, QTimer
 from ptyx_mcq.scan.data.students import Student
 
 from ptyx_mcq_corrector.app_state import STATE
-from ptyx_mcq_corrector.views.data_issues.page_displayer import PageDisplayer
+from .page_displayer import PageDisplayer
 
 if TYPE_CHECKING:
-    from ptyx_mcq_corrector.views.data_issues.page_reviewer import DataView
+    from .page_reviewer import PageReviewer
 
 
 # --------------------------------------------------------------------------
@@ -63,7 +63,7 @@ class NameEditor(QWidget):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self._parent: "DataView" = parent  # type: ignore
+        self._parent: "PageReviewer" = cast("PageReviewer", parent)
         self.name_editor = QLineEdit(self)
         # self.name_editor.setStyleSheet("QLineEdit { margin-left: 10px;}")
         label = QLabel("&Name/Id:")

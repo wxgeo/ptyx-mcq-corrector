@@ -141,6 +141,10 @@ class ItemsModel(QStandardItemModel):
         return _items_walker(self)
 
     @property
+    def all_items(self) -> list[ItemInfo]:
+        return [item.data(ITEM_INFO) for item in self._walk()]
+
+    @property
     def selectable_items(self) -> list[ItemInfo]:
         selectable_items: list[ItemInfo] = []
         print(self.rowCount())

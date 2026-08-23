@@ -1,4 +1,4 @@
-from enum import Flag
+from enum import Flag, auto
 from typing import TYPE_CHECKING
 
 
@@ -25,18 +25,19 @@ from ptyx_mcq_corrector.custom_widgets.items_list.types import (
 )
 from ptyx_mcq_corrector.enhanced_widget import EnhancedWidget
 from ptyx_mcq_corrector.tools import update_ui
-from ptyx_mcq_corrector.views.data_issues.cbx_reviewer import CheckboxesReviewer
-from ptyx_mcq_corrector.views.data_issues.name_editor import NameEditor
+from .cbx_reviewer import CheckboxesReviewer
+from .name_editor import NameEditor
+from .search_bar import HideFilterProxy, SearchItems
 
 if TYPE_CHECKING:
     pass
 
 
 class Components(Flag):
+    NAME_EDITOR = auto()
+    CBX_REVIEWER = auto()
+    SEARCH_BAR = auto()
     NONE = 0
-    NAME_EDITOR = 1
-    CBX_REVIEWER = 2
-    BOTH = 3
 
 
 class DataIssuesModel(ItemsModel):
@@ -74,16 +75,22 @@ class DataIssuesModel(ItemsModel):
         return True
 
 
-class DataView(EnhancedWidget):
+class PageReviewer(EnhancedWidget):
     # main_window: "McqCorrectorMainWindow"
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        main_layout = QHBoxLayout(self)
-        self.issues_viewer = ItemsViewer(self)
-        main_layout.addWidget(self.issues_viewer, 0)
         self.issues_model = DataIssuesModel(STATE)
-        self.issues_viewer.setModel(self.issues_model)
+        self._model_proxy = HideFilterProxy()
+        self._model_proxy.setSourceModel(self.issues_model)
+        main_layout = QHBoxLayout(self)
+        self.search_bar = SearchItems(self, self._model_proxy)
+        self.issues_viewer = ItemsViewer(self)
+        left_side = QVBoxLayout()
+        main_layout.addLayout(left_side)
+        left_side.addWidget(self.search_bar)
+        left_side.addWidget(self.issues_viewer, 0)
+        self.issues_viewer.setModel(self._model_proxy)
 
         layout = QVBoxLayout()
         self.name_editor = NameEditor(self)
@@ -108,19 +115,23 @@ class DataView(EnhancedWidget):
         return sorted([student.to_text() for student in STATE.students])
 
     def update_view(self):
-        self.name_editor.setVisible(Components.NAME_EDITOR in self.components_to_display)
-        self.name_editor.update_suggestions()
+        has_name_editor = Components.NAME_EDITOR in self.components_to_display
+        has_cbx = Components.CBX_REVIEWER in self.components_to_display
+        has_search_bar = Components.SEARCH_BAR in self.components_to_display
+        self.search_bar.setVisible(has_search_bar)
+        self.name_editor.setVisible(has_name_editor)
+        if has_name_editor:
+            self.name_editor.update_suggestions()
 
-        self.page_view.checkbox_review = Components.CBX_REVIEWER in self.components_to_display
-        match self.components_to_display:
-            case Components.BOTH:
-                color = "magenta"
-            case Components.NAME_EDITOR:
-                color = "crimson"
-            case Components.CBX_REVIEWER:
-                color = "cornflowerblue"
-            case _:
-                color = "black"
+        self.page_view.checkbox_review = has_cbx
+        if has_name_editor and has_cbx:
+            color = "magenta"
+        elif has_name_editor:
+            color = "crimson"
+        elif has_cbx:
+            color = "cornflowerblue"
+        else:
+            color = "black"
         self.page_view.focus_rect_color = QColor(color)
 
     @property
@@ -153,7 +164,8 @@ class DataView(EnhancedWidget):
         for item_info in self.issues_model.selectable_items:
             print(item_info)
             item_info.status = ItemStatus.FAILURE
-        print("UPDATE!!!!")
+        print("Updating issues...")
+        self.search_bar.update_filtered_items()
         self.issues_viewer.update_view()
 
     @property
