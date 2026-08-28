@@ -43,7 +43,7 @@ class CategoryTitle(StrEnum):
     AMBIGUOUS_ANSWERS = "Ambiguous answers"
     MISSING_PAGES = "Missing pages"
     DUPLICATES = "Duplicates"
-    NONE = ""
+    SEARCH_RESULTS = ""
 
 
 DocTitle = NewType("DocTitle", str)
@@ -77,7 +77,7 @@ class DocItemData:
 
 @dataclass
 class CategoryItemData:
-    name: CategoryTitle = CategoryTitle.NONE
+    name: CategoryTitle = CategoryTitle.SEARCH_RESULTS
     docs: list[DocItemData] = field(default_factory=list)
     # Indicate if the pages are meant to be displayed. If so, the pages items will be selectable, but not the doc ones.
     # Else, the doc items will be selectable.

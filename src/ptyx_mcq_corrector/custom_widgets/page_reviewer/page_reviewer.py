@@ -178,7 +178,7 @@ class PageReviewer(EnhancedWidget):
         match item_info.category:
             case CategoryTitle.NAMES:
                 self.page = doc.first_page
-            case CategoryTitle.AMBIGUOUS_ANSWERS:
+            case CategoryTitle.AMBIGUOUS_ANSWERS | CategoryTitle.SEARCH_RESULTS:
                 self.page = item_info.page
                 assert item_info.page is not None
         self.page_view.setFocus()

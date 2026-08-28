@@ -15,7 +15,7 @@ from ptyx_mcq_corrector.custom_widgets.page_reviewer.page_reviewer import PageRe
 class SearchView(PageReviewer):
     def __init__(self, parent: QWidget | None):
         super().__init__(parent)
-        self.components_to_display = Components.SEARCH_BAR
+        self.components_to_display = Components.SEARCH_BAR | Components.NAME_EDITOR | Components.CBX_REVIEWER
 
     def _docs(self) -> CategoryItemData:
         assert STATE.parser is not None
@@ -33,7 +33,7 @@ class SearchView(PageReviewer):
                     pages=pages,
                 )
             )
-        return CategoryItemData(name=CategoryTitle.NONE, docs=docs, display_pages=True)
+        return CategoryItemData(name=CategoryTitle.SEARCH_RESULTS, docs=docs, display_pages=True)
 
     def update_docs(self):
         self.update_items(self._docs())
