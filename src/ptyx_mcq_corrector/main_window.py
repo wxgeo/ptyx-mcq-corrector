@@ -93,6 +93,8 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         self.actionScan_documents.triggered.connect(handler.scan_or_abort)
         self.action_Reset_scan.triggered.connect(lambda: handler.reset(ResetMode.SCAN))
 
+        self.action_Find_and_edit.triggered.connect(lambda: handler.open_search())
+
         issues_viewer = self.main_area.data_view.issues_viewer
         self.actionNext.triggered.connect(issues_viewer.move_to_next_index)
         self.actionPrevious.triggered.connect(issues_viewer.move_to_previous_index)

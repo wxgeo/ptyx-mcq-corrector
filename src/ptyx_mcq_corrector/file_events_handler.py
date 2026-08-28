@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
 from ptyx_mcq_corrector.app_state import STATE, State
 from ptyx_mcq_corrector.tools import update_ui
-from ptyx_mcq_corrector.views.main_area import DEFAULTS_VIEW_MODES
+from ptyx_mcq_corrector.views.main_area import DEFAULTS_VIEW_MODES, ViewMode
 
 if TYPE_CHECKING:
     from ptyx_mcq_corrector.main_window import McqCorrectorMainWindow
@@ -171,6 +171,12 @@ class FileEventsHandler(QObject):
 
     def refresh_corrections(self) -> None:
         STATE.corrections_manager.pregenerate_all_docs(force_refresh=True)
+
+    @update_ui
+    def open_search(self) -> bool:
+        self.main_window.main_area.view_mode = ViewMode.SEARCH_RESULTS
+        self.main_window.main_area.search_view.update_docs()
+        return True
 
     # -----------------
     #      Dialogs

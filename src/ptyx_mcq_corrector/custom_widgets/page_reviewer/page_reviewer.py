@@ -16,10 +16,6 @@ from ptyx_mcq_corrector.custom_widgets.items_list.types import (
     ItemInfo,
     CategoryTitle,
     CategoryItemData,
-    DocItemData,
-    DocTitle,
-    PageItemData,
-    PageTitle,
     ITEM_INFO,
     ItemStatus,
 )
@@ -134,39 +130,19 @@ class PageReviewer(EnhancedWidget):
             color = "black"
         self.page_view.focus_rect_color = QColor(color)
 
-    @property
-    def _name_issues(self) -> CategoryItemData:
-        docs: list[DocItemData] = []
-        assert STATE.data_issues is not None
-        assert STATE.parser is not None
-        for doc_id in STATE.data_issues.names_to_review:
-            doc = STATE.parser.scan_data.used_docs_index[doc_id]
-            docs.append(DocItemData(name=DocTitle(f"Document {doc_id}"), doc=doc))
-        return CategoryItemData(name=CategoryTitle.NAMES, docs=docs, display_pages=False)
-
-    @property
-    def _ambiguous_answers(self) -> CategoryItemData:
-        assert STATE.parser is not None
-        assert STATE.data_issues is not None
-        docs_index = STATE.parser.scan_data.used_docs_index
-        docs: list[DocItemData] = []
-        for doc_id, page_nums in STATE.data_issues.ambiguous_answers_by_doc.items():
-            doc = docs_index[doc_id]
-            pages: list[PageItemData] = []
-            for page_num in page_nums:
-                page = doc.pages_index[page_num]
-                pages.append(PageItemData(name=PageTitle(f"Page {page_num}"), page=page))
-            docs.append(DocItemData(name=DocTitle(f"Document {doc_id}"), doc=doc, pages=pages))
-        return CategoryItemData(name=CategoryTitle.AMBIGUOUS_ANSWERS, docs=docs, display_pages=True)
-
-    def update_issues(self) -> None:
-        self.issues_model.update_model(self._name_issues, self._ambiguous_answers)
-        for item_info in self.issues_model.selectable_items:
-            print(item_info)
-            item_info.status = ItemStatus.FAILURE
-        print("Updating issues...")
+    def update_items(self, *categories: CategoryItemData) -> None:
+        self.issues_model.update_model(*categories)
+        print("Updating items...")
         self.search_bar.update_filtered_items()
+        self._prepare_view()
         self.issues_viewer.update_view()
+
+    def _prepare_view(self) -> None:
+        """
+        Specific actions to do between updating the model and updating view.
+
+        To be overridden if needed.
+        """
 
     @property
     def page(self) -> Page:

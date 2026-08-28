@@ -65,7 +65,8 @@ class ItemsModel(QStandardItemModel):
         root = self.invisibleRootItem()
         assert root is not None
         category = category_item_data.name
-        category_item = self._new_category(category)
+        # Create a new category only if the name is non-empty, else attach the docs directly to the invisible root.
+        category_item = self._new_category(category) if category else root
         for doc_item_data in category_item_data.docs:
             doc = doc_item_data.doc
             # The final items may be either the docs themselves, in which case the docs are selectable, or their pages.

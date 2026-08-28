@@ -31,7 +31,7 @@ from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 
 from ptyx_mcq_corrector.app_state import STATE
-from ptyx_mcq_corrector.custom_widgets.collapsible_sidebar import CollapsibleSidebar
+from ptyx_mcq_corrector.custom_widgets.generic.collapsible_sidebar import CollapsibleSidebar
 
 # Try to import PDF viewing support (optional)
 try:

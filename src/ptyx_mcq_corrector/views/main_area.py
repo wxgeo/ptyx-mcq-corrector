@@ -149,7 +149,7 @@ class MainArea(QStackedWidget):
                         case CategoryTitle.MISSING_PAGES:
                             ...  # TODO
             case ViewMode.SEARCH_RESULTS:
-                ...  # TODO
+                self.search_view.update_view()
             case ViewMode.SCORES:
                 ...  # TODO
             # case ViewMode.CORRECTIONS:
