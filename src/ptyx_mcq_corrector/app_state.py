@@ -12,6 +12,7 @@ from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityC
 from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
+from ptyx_mcq.tools.io_tools import get_file_or_sysexit
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.correction.corrections_manager import CorrectionsManager
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
@@ -212,7 +213,7 @@ class AppState:
 
         Return a boolean, indicating if the current directory was effectively changed."""
         # Attention, paths must be resolved to don't miss duplicates (symlinks...)!
-
+        config_file = get_file_or_sysexit(config_file, extension=CONFIG_FILE_EXTENSION)
         # Do nothing if it's the current directory.
         if not config_file.is_file():
             raise FileNotFoundError(f"File '{config_file}' does not exist.")
