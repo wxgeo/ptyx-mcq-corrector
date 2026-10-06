@@ -15,6 +15,8 @@ from typing import Iterable
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor
+from PyQt6.QtPdf import QPdfDocument
+from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -29,18 +31,25 @@ from PyQt6.QtWidgets import (
 from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
-
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.custom_widgets.generic.collapsible_sidebar import CollapsibleSidebar
+from ptyx_mcq_corrector.views.scores.qpdf_toolbar import PdfToolBar
 
-# Try to import PDF viewing support (optional)
-try:
-    from PyQt6.QtPdf import QPdfDocument
-    from PyQt6.QtPdfWidgets import QPdfView
 
-    PDF_SUPPORT = True
-except ImportError:
-    PDF_SUPPORT = False
+class SmallPdfWidget(QWidget):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+        self.pdf_document = QPdfDocument(self)
+        self.pdf_view = QPdfView(self)
+        self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
+        self.pdf_view.setDocument(self.pdf_document)
+        self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
+        self.toolbar = PdfToolBar(self)
+        # Layout
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.toolbar)
+        self.layout.addWidget(self.pdf_view)
+        self.setLayout(self.layout)
 
 
 class PdfOrLoadingWidget(QStackedWidget):
@@ -55,18 +64,9 @@ class PdfOrLoadingWidget(QStackedWidget):
         self.loading_label.setStyleSheet("font-size: 18px; color: gray;")
         self.addWidget(self.loading_label)
 
-        # Page 1: PDF viewer (or fallback placeholder if QtPdf isn't installed)
-        if PDF_SUPPORT:
-            self.pdf_document = QPdfDocument(self)
-            self.pdf_view = QPdfView(self)
-            self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
-            self.pdf_view.setDocument(self.pdf_document)
-            self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
-            self.addWidget(self.pdf_view)
-        else:
-            self.pdf_view = QLabel("PDF support not installed.\nRun: pip install PyQt6-QPdf")
-            self.pdf_view.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.addWidget(self.pdf_view)
+        # Page 1: PDF viewer
+        self.pdf_widget = SmallPdfWidget(self)
+        self.addWidget(self.pdf_widget)
 
         self.setCurrentIndex(0)  # start on "Loading..."
 
@@ -75,8 +75,7 @@ class PdfOrLoadingWidget(QStackedWidget):
         self.setCurrentIndex(0)
 
     def show_pdf(self, path: Path | str) -> None:
-        if PDF_SUPPORT:
-            self.pdf_document.load(str(path))
+        self.pdf_widget.pdf_document.load(str(path))
         self.setCurrentIndex(1)
 
     def ask_for_pdf(self, doc: Document) -> None:
@@ -126,14 +125,17 @@ class ScoresView(QWidget):
         self.label_left.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.label_center.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
         self.label_right.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        # self.label_left.setStyleSheet(f"background-color: yellow;")
+        # self.label_center.setStyleSheet(f"background-color: red;")
+        # self.label_right.setStyleSheet(f"background-color: yellow;")
 
-        top_row.addWidget(self.label_left, 1)
-        top_row.addWidget(self.label_center, 1)
-        top_row.addWidget(self.label_right, 1)
-        main_layout.addLayout(top_row)
+        top_row.addWidget(self.label_left, stretch=1)
+        top_row.addWidget(self.label_center, stretch=1)
+        top_row.addWidget(self.label_right, stretch=1)
+        main_layout.addLayout(top_row, stretch=0)
 
         self.pdf_or_loading = PdfOrLoadingWidget()
-        main_layout.addWidget(self.pdf_or_loading)
+        main_layout.addWidget(self.pdf_or_loading, stretch=1)
 
         root_layout.addWidget(main_area, stretch=1)
 
@@ -205,7 +207,7 @@ class ScoresView(QWidget):
 
         self.label_center.setText(f"<i>Score:</i> {formatted_score}")
         self.label_center.setStyleSheet(
-            f"QLabel{{margin:auto;background:{lighter};padding:5px;border:2px solid {color};border-radius: 9px;}}"
+            f"QLabel{{background:{lighter};padding:5px;border:2px solid {color};border-radius: 9px;}}"
         )
         font = self.label_center.font()
         font.setPointSize(self.label_left.font().pointSize() + 2)  # bump up by 2pt
