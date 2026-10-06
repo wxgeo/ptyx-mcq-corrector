@@ -101,15 +101,19 @@ class PdfToolBar(QToolBar):
         self.addAction(self.zoom_out_action)
         self.addAction(self.zoom_in_action)
 
-        # --- Keep toolbar in sync with the view / document ---
-        self.navigator.currentPageChanged.connect(self._sync_page)
-        self.document.pageCountChanged.connect(self._sync_page)
-        self.view.pageModeChanged.connect(self._sync_page_mode)
-        self.view.zoomModeChanged.connect(self._sync_zoom_mode)
+        # --- Cached state, fed by the view's signals ---
+        self._page_count = self.document.pageCount()
+        self._current_page = self.navigator.currentPage()
 
-        self._sync_page()
-        self._sync_page_mode()
-        self._sync_zoom_mode()
+        # --- Keep toolbar in sync with the view / document ---
+        self.navigator.currentPageChanged.connect(self._on_page_changed)
+        self.document.pageCountChanged.connect(self._on_page_count_changed)
+        self.view.pageModeChanged.connect(self._on_page_mode_changed)
+        self.view.zoomModeChanged.connect(self._on_zoom_mode_changed)
+
+        self._refresh_page_controls()
+        self._on_page_mode_changed(self.view.pageMode())
+        self._on_zoom_mode_changed(self.view.zoomMode())
 
     # ------------------------------------------------------------------ #
     # Icons
@@ -169,13 +173,12 @@ class PdfToolBar(QToolBar):
     # ------------------------------------------------------------------ #
     def _go_to(self, page: int) -> None:
         """Jump to a 0-based page index (clamped)."""
-        count = self.document.pageCount()
-        if count == 0:
+        if self._page_count == 0:
             return
-        page = max(0, min(count - 1, page))
-        if page != self.navigator.currentPage():
+        page = max(0, min(self._page_count - 1, page))
+        if page != self._current_page:
             self.navigator.jump(page, QPointF(), self.navigator.currentZoom())
-        self._sync_page()  # also resets the spin box if the input was out of range
+        self._refresh_page_controls()  # also resets the spin box if the input was out of range
 
     # ------------------------------------------------------------------ #
     # Zoom
@@ -210,11 +213,18 @@ class PdfToolBar(QToolBar):
         self.view.setZoomFactor(factor)
 
     # ------------------------------------------------------------------ #
-    # Sync view -> toolbar
+    # Sync view -> toolbar (slots only use their arguments and cached state)
     # ------------------------------------------------------------------ #
-    def _sync_page(self, *_) -> None:
-        count = self.document.pageCount()
-        current = self.navigator.currentPage()
+    def _on_page_changed(self, page: int) -> None:
+        self._current_page = page
+        self._refresh_page_controls()
+
+    def _on_page_count_changed(self, count: int) -> None:
+        self._page_count = count
+        self._refresh_page_controls()
+
+    def _refresh_page_controls(self) -> None:
+        count, current = self._page_count, self._current_page
         has_doc = count > 0
 
         self.page_spin.blockSignals(True)
@@ -227,12 +237,11 @@ class PdfToolBar(QToolBar):
         self.prev_action.setEnabled(has_doc and current > 0)
         self.next_action.setEnabled(has_doc and current < count - 1)
 
-    def _sync_page_mode(self, *_) -> None:
-        single = self.view.pageMode() == QPdfView.PageMode.SinglePage
+    def _on_page_mode_changed(self, mode) -> None:
+        single = mode == QPdfView.PageMode.SinglePage
         self.single_action.setChecked(single)
         self.multi_action.setChecked(not single)
 
-    def _sync_zoom_mode(self, *_) -> None:
-        mode = self.view.zoomMode()
+    def _on_zoom_mode_changed(self, mode) -> None:
         self.fit_width_action.setChecked(mode == QPdfView.ZoomMode.FitToWidth)
         self.fit_page_action.setChecked(mode == QPdfView.ZoomMode.FitInView)
