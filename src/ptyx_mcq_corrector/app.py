@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 import faulthandler
-
 import signal
 import sys
-
 from argparse import ArgumentParser
 from functools import partial
 from pathlib import Path
@@ -15,10 +13,9 @@ from PyQt6.QtCore import QRect, QPoint
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox
 from argcomplete import FilesCompleter
+
 from ptyx_mcq.parameters import CONFIG_FILE_EXTENSION
-
 from ptyx_mcq_corrector.main_window import ICON_PATH, McqCorrectorMainWindow
-
 from ptyx_mcq_corrector.signal_wake_up import SignalWakeupHandler
 
 faulthandler.enable()
@@ -70,4 +67,7 @@ def main(args: list | None = None) -> None:
     except BaseException as e:
         raise e
     print("Bye!")
+    # print("Threads:", [(t.name, t.daemon) for t in threading.enumerate()])
+    # print("Children:", multiprocessing.active_children())
+    # faulthandler.dump_traceback_later(5, exit=True)  # after 5 s, dump all thread stacks and exit
     sys.exit(return_code)

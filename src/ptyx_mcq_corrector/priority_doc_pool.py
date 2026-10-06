@@ -200,7 +200,13 @@ class DocumentGeneratorPool(QObject):
         for _ in self._workers:
             self._task_queue.put(None)
         for w in self._workers:
+            print("Ending a worker...")
             w.join(timeout=5)
+        # Nobody reads the queue anymore: don't let the exit handler wait for
+        # the feeder thread to flush whatever is still buffered.
+        self._task_queue.cancel_join_thread()
+        self._task_queue.close()
+        print("Done")
 
     # -- internal threads ---------------------------------------------------
 
