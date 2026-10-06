@@ -295,5 +295,9 @@ class AppState:
             print(f"Enable to load state: {e!r}")
         return cls._from_dict(settings_dict)
 
+    def close(self) -> None:
+        self.save()
+        self.corrections_manager.close()
+
 
 STATE = AppState.load()

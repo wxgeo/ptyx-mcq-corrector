@@ -154,7 +154,7 @@ class McqCorrectorMainWindow(QMainWindow, Ui_MainWindow):
         """Save state and return a boolean indicating if closing is accepted.
 
         For now, requests are always accepted."""
-        STATE.save()
+        STATE.close()
         return True
 
     # noinspection PyDefaultArgument

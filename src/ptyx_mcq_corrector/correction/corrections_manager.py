@@ -53,3 +53,6 @@ class CorrectionsManager:
 
     def on_document_ready(self, doc_id: DocumentId, answer: object):
         print(f"doc {doc_id} ready!")
+
+    def close(self) -> None:
+        self.docs_generator.shutdown()
