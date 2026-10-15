@@ -12,7 +12,7 @@ from ptyx_mcq.scan.data.conflict_gestion.integrity_check.check import IntegrityC
 from ptyx_mcq.scan.data.documents import Document
 from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.scan.scan_doc import MCQPictureParser
-from ptyx_mcq.tools.io_tools import get_file_or_sysexit
+from ptyx_mcq.tools.io_tools import get_file_or_sysexit, FatalError
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.correction.corrections_manager import CorrectionsManager
 from ptyx_mcq_corrector.param import CONFIG_PATH, MAX_RECENT_FILES
@@ -84,10 +84,13 @@ class AppState:
         """
         if (current_file := self._current_file) is None:
             return None
-        try:
+        if "parser" in self._cache:
             return self._cache["parser"]
-        except KeyError:  # Update the parser.
-            return self._cache.setdefault("parser", MCQPictureParser(current_file))
+        else:  # Update the parser.
+            try:
+                return self._cache.setdefault("parser", MCQPictureParser(current_file))
+            except FatalError:
+                return
 
     @property
     def scores(self) -> dict[Student, float | str] | None:
