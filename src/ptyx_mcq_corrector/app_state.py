@@ -90,7 +90,7 @@ class AppState:
             try:
                 return self._cache.setdefault("parser", MCQPictureParser(current_file))
             except FatalError:
-                return
+                return None
 
     @property
     def scores(self) -> dict[Student, float | str] | None:

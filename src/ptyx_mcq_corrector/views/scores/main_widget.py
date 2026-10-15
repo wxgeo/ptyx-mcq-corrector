@@ -15,8 +15,6 @@ from typing import Iterable
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor
-from PyQt6.QtPdf import QPdfDocument
-from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -33,23 +31,7 @@ from ptyx_mcq.scan.data.students import Student
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId
 from ptyx_mcq_corrector.app_state import STATE
 from ptyx_mcq_corrector.custom_widgets.generic.collapsible_sidebar import CollapsibleSidebar
-from ptyx_mcq_corrector.views.scores.qpdf_toolbar import PdfToolBar
-
-
-class SmallPdfWidget(QWidget):
-    def __init__(self, parent: QWidget):
-        super().__init__(parent)
-        self.pdf_document = QPdfDocument(self)
-        self.pdf_view = QPdfView(self)
-        self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
-        self.pdf_view.setDocument(self.pdf_document)
-        self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
-        self.toolbar = PdfToolBar(self)
-        # Layout
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.toolbar)
-        self.layout.addWidget(self.pdf_view)
-        self.setLayout(self.layout)
+from ptyx_mcq_corrector.views.scores.small_pdf_widget import SmallPdfWidget
 
 
 class PdfOrLoadingWidget(QStackedWidget):

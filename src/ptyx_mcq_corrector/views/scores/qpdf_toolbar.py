@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from PyQt6.QtCore import QEvent, QPointF, QSize, Qt
+from PyQt6.QtCore import QEvent, QPointF, QSize, Qt, QObject
 from PyQt6.QtGui import (
     QAction,
     QActionGroup,
@@ -11,11 +11,21 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
 )
+from PyQt6.QtPdf import QPdfPageNavigator
 from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import QLabel, QSpinBox, QToolBar
 
+
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.views.scores.small_pdf_widget import SmallPdfWidget, ZoomablePdfView
+
+
+def _checkable_action(text: str, parent: QObject, tooltip: str = "") -> QAction:
+    action = QAction(text, parent)
+    action.setCheckable(True)
+    if tooltip:
+        action.setToolTip(tooltip)
+    return action
 
 
 class PdfToolBar(QToolBar):
@@ -28,9 +38,9 @@ class PdfToolBar(QToolBar):
     def __init__(self, pdf_widget: "SmallPdfWidget", parent=None):
         super().__init__("PDF controls", parent)
         self.pdf_widget = pdf_widget
-        self.view = pdf_widget.pdf_view
+        self.view: "ZoomablePdfView" = pdf_widget.pdf_view
         self.document = pdf_widget.pdf_document
-        self.navigator = self.view.pageNavigator()
+        self.navigator: QPdfPageNavigator = cast(QPdfPageNavigator, self.view.pageNavigator())
         self.setMovable(False)
         self.setIconSize(QSize(self.ICON_SIZE, self.ICON_SIZE))
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
@@ -54,8 +64,8 @@ class PdfToolBar(QToolBar):
         self.page_count_label = QLabel(" / 0 ")
 
         # --- Page mode (mutually exclusive) ---
-        self.single_action = QAction("Single page", self, checkable=True)
-        self.multi_action = QAction("Continuous", self, checkable=True)
+        self.single_action = _checkable_action("Single page", self)
+        self.multi_action = _checkable_action("Continuous", self)
         self.single_action.setToolTip("Show one page at a time")
         self.multi_action.setToolTip("Show all pages in a scrollable column")
         mode_group = QActionGroup(self)
@@ -66,8 +76,8 @@ class PdfToolBar(QToolBar):
 
         # --- Zoom ---
         # Both fit actions are unchecked when the zoom is custom.
-        self.fit_width_action = QAction("Fit width", self, checkable=True)
-        self.fit_page_action = QAction("Fit page", self, checkable=True)
+        self.fit_width_action = _checkable_action("Fit width", self)
+        self.fit_page_action = _checkable_action("Fit page", self)
         fit_group = QActionGroup(self)
         fit_group.addAction(self.fit_width_action)
         fit_group.addAction(self.fit_page_action)
@@ -77,12 +87,12 @@ class PdfToolBar(QToolBar):
         self.zoom_out_action = QAction("Zoom out", self)
         self.zoom_out_action.setToolTip("Zoom out (Ctrl+-)")
         self.zoom_out_action.setShortcuts([QKeySequence("Ctrl+-")])
-        self.zoom_out_action.triggered.connect(lambda: self._step_zoom(1 / self.ZOOM_STEP))
+        self.zoom_out_action.triggered.connect(lambda: self.view.zoom_by(1 / self.ZOOM_STEP))
 
         self.zoom_in_action = QAction("Zoom in", self)
         self.zoom_in_action.setToolTip("Zoom in (Ctrl++)")
         self.zoom_in_action.setShortcuts([QKeySequence("Ctrl++"), QKeySequence("Ctrl+=")])
-        self.zoom_in_action.triggered.connect(lambda: self._step_zoom(self.ZOOM_STEP))
+        self.zoom_in_action.triggered.connect(lambda: self.view.zoom_by(self.ZOOM_STEP))
 
         # --- Icons ---
         self._update_icons()
@@ -154,9 +164,9 @@ class PdfToolBar(QToolBar):
             p.setBrush(Qt.BrushStyle.NoBrush)
 
             if kind == "prev":  # chevron pointing left
-                p.drawPolyline([QPointF(15, 5), QPointF(8, 12), QPointF(15, 19)])
+                p.drawPolyline(QPointF(15, 5), QPointF(8, 12), QPointF(15, 19))
             elif kind == "next":  # chevron pointing right
-                p.drawPolyline([QPointF(9, 5), QPointF(16, 12), QPointF(9, 19)])
+                p.drawPolyline(QPointF(9, 5), QPointF(16, 12), QPointF(9, 19))
             else:  # magnifying glass with "+" or "-"
                 p.drawEllipse(QPointF(10, 10), 6.5, 6.5)  # lens
                 p.drawLine(QPointF(15, 15), QPointF(20.5, 20.5))  # handle
@@ -179,38 +189,6 @@ class PdfToolBar(QToolBar):
         if page != self._current_page:
             self.navigator.jump(page, QPointF(), self.navigator.currentZoom())
         self._refresh_page_controls()  # also resets the spin box if the input was out of range
-
-    # ------------------------------------------------------------------ #
-    # Zoom
-    # ------------------------------------------------------------------ #
-    def _effective_zoom(self) -> float:
-        """The zoom factor actually applied to the current page.
-
-        In fit modes, QPdfView.zoomFactor() is NOT the real scale, so we
-        recompute it the same way QPdfView does: available viewport size
-        divided by the page size in screen pixels at 100%.
-        """
-        mode = self.view.zoomMode()
-        if mode == QPdfView.ZoomMode.Custom or self.document.pageCount() == 0:
-            return self.view.zoomFactor()
-
-        page = self.navigator.currentPage()
-        size = self.document.pagePointSize(page)  # in points (1/72 inch)
-        px_per_point = self.view.screen().logicalDotsPerInch() / 72.0
-        margins = self.view.documentMargins()
-        viewport = self.view.viewport()
-
-        zoom_w = (viewport.width() - margins.left() - margins.right()) / (size.width() * px_per_point)
-        if mode == QPdfView.ZoomMode.FitToWidth:
-            return zoom_w
-        zoom_h = (viewport.height() - margins.top() - margins.bottom()) / (size.height() * px_per_point)
-        return min(zoom_w, zoom_h)
-
-    def _step_zoom(self, multiplier: float) -> None:
-        factor = self._effective_zoom() * multiplier  # compute BEFORE changing mode
-        factor = max(self.ZOOM_MIN, min(self.ZOOM_MAX, factor))
-        self.view.setZoomMode(QPdfView.ZoomMode.Custom)
-        self.view.setZoomFactor(factor)
 
     # ------------------------------------------------------------------ #
     # Sync view -> toolbar (slots only use their arguments and cached state)
