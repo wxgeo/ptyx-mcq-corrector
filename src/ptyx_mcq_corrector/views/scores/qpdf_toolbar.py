@@ -15,7 +15,7 @@ from PyQt6.QtPdfWidgets import QPdfView
 from PyQt6.QtWidgets import QLabel, QSpinBox, QToolBar
 
 if TYPE_CHECKING:
-    pass
+    from ptyx_mcq_corrector.views.scores.main_widget import SmallPdfWidget
 
 
 class PdfToolBar(QToolBar):
