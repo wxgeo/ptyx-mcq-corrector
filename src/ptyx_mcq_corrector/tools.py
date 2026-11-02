@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Protocol, Callable, TYPE_CHECKING
+from typing import Protocol, Callable, TYPE_CHECKING, TypeVar
 
 from ptyx_mcq_corrector import param
 
@@ -9,6 +9,15 @@ if TYPE_CHECKING:
 
 class HasMainWindow(Protocol):
     main_window: "McqCorrectorMainWindow"
+
+
+T = TypeVar("T")
+
+
+def not_none(value: T | None) -> T:
+    """Assert that value is not None, for type checkers."""
+    assert value is not None
+    return value
 
 
 def update_ui(f: Callable[..., bool]) -> Callable[..., bool]:

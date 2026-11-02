@@ -47,6 +47,7 @@ class ScanManager(QObject):
     scan_ended = pyqtSignal(name="scan_ended")
     scan_aborted = pyqtSignal(name="scan_aborted")
     scan_progress = pyqtSignal(str, name="scan_progress")
+    no_current_file = pyqtSignal(name="no_current_file")
 
     def __init__(self, main_window: "McqCorrectorMainWindow"):
         super().__init__(None)
@@ -54,6 +55,7 @@ class ScanManager(QObject):
         self.scan_started.connect(self.main_window.file_events_handler.on_scan_started)
         self.scan_ended.connect(self.main_window.file_events_handler.on_scan_ended)
         self.scan_aborted.connect(self.main_window.file_events_handler.on_scan_aborted)
+        self.no_current_file.connect(self.main_window.file_events_handler.open_file)
         self._is_busy = False
 
     @property
@@ -101,7 +103,9 @@ class ScanManager(QObject):
         This is the main entry point of the scan process.
         """
         self.abort_event.clear()  # just in case
-        if (parser := self.parser) is not None:
+        if (parser := self.parser) is None:
+            self.no_current_file.emit()
+        else:
             self.scan_started.emit()
             parser.scan_data.run(progression=self.progression, abort_event=self.abort_event)
             if self.abort_event.is_set():
