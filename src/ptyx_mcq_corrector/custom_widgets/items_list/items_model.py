@@ -3,7 +3,6 @@ from typing import Generator
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-
 from ptyx_mcq.scan.data.documents import Document, Page
 from ptyx_mcq.tools.parse_config.subtypes import DocumentId, PageNum
 from ptyx_mcq_corrector.app_state import AppState
@@ -16,7 +15,6 @@ from ptyx_mcq_corrector.custom_widgets.items_list.types import (
     DocTitle,
     PageTitle,
 )
-
 
 FoundIssues = dict[DocumentId, list[PageNum]] | list[DocumentId]
 
@@ -126,7 +124,7 @@ class ItemsModel(QStandardItemModel):
         name: PageTitle,
         category: CategoryTitle,
         doc: Document,
-        page: Page,
+        page: Page | None,
     ):
         return self._new_item(
             category_item,

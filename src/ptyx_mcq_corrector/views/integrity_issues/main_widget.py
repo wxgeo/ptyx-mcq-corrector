@@ -14,6 +14,8 @@ from ptyx_mcq_corrector.custom_widgets.items_list.types import (
     CategoryTitle,
 )
 
+_ERROR_COLOR = "#ad1827"
+
 
 class IntegrityView(QWidget):
     def __init__(self, parent: QWidget | None):
@@ -28,24 +30,35 @@ class IntegrityView(QWidget):
         main_layout.addWidget(self.info, alignment=Qt.AlignmentFlag.AlignTop)
 
     def update_info(self) -> None:
-        html: list[str] = ["<h1 style='color: darkred;'>Errors</h1>"]
+        html: list[str] = [f"<h1 style='color: {_ERROR_COLOR};'>Errors</h1>"]
         assert STATE.integrity_issues is not None
         assert STATE.integrity_issues is not None
         categories = {
-            "⚠ Missing": (STATE.integrity_issues.missing_pages, "not found."),
-            "⚠ Duplicates": (STATE.integrity_issues.duplicates, "found in different versions."),
+            "Missing": (STATE.integrity_issues.missing_pages, "not found."),
+            "Duplicates": (STATE.integrity_issues.duplicates, "found in different versions."),
         }
 
         for title, (issues, msg) in categories.items():
             if issues:
-                html.append(f"<h2>{title} pages</h2><ul>")
+                html.append(f"<h2><strong style='color: {_ERROR_COLOR}'>⚠</strong> {title} pages</h2><ul>")
                 for doc_id, pages in issues.items():
-                    html.append(
-                        f"<li><strong>Document {doc_id}:</strong> pages {', '.join(map(str, pages))} {msg}</li>"
+                    pages_description = ("page " if len(pages) == 1 else "pages ") + ", ".join(
+                        map(str, pages)
                     )
+                    html.append(f"<li><strong>Document {doc_id}:</strong> {pages_description} {msg}</li>")
                 html.append("</ul>")
-        html.append("<p style='border: 1px solid blue'>Please fix the scanned documents and retry.</p>")
+        html.append(
+            "<p style='margin-top:20px'><strong>Please fix the scanned documents and retry.</strong></p>"
+        )
         self.info.setText("\n".join(html))
+        self.info.setStyleSheet(f"""
+    QLabel {{border: 2px solid {_ERROR_COLOR};
+        border-radius: 10px;
+        padding: 10px;
+        margin: 10px;
+        padding-bottom: 20px;
+    }}
+""")
 
     @staticmethod
     def _issues_data(
@@ -58,7 +71,8 @@ class IntegrityView(QWidget):
             doc = docs_index[doc_id]
             pages: list[PageItemData] = []
             for page_num in page_nums:
-                page = doc.pages_index[page_num]
+                # The page may be missing!
+                page = doc.pages_index.get(page_num)
                 pages.append(PageItemData(name=PageTitle(f"Page {page_num}"), page=page))
             docs.append(DocItemData(name=DocTitle(f"Document {doc_id}"), doc=doc, pages=pages))
         return CategoryItemData(name=category_name, docs=docs, display_pages=True)

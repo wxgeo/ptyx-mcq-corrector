@@ -65,7 +65,7 @@ PageTitle = NewType("PageTitle", str)
 @dataclass
 class PageItemData:
     name: PageTitle
-    page: Page
+    page: Page | None
 
 
 @dataclass
